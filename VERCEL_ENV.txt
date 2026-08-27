@@ -1,0 +1,8 @@
+# Env vars para Vercel — Outreach Dashboard
+# Copiar tal cual
+
+KEY_1=SUPABASE_URL
+VALUE_1=https://qbtoupvgujlhntorwbnj.supabase.co
+
+KEY_2=SUPABASE_ANON_KEY
+VALUE_2=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFidG91cHZndWpsaG50b3J3Ym5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyNzg0NTEsImV4cCI6MjEwMTg1NDQ1MX0.xrKWg6oeFloG1kEjw4cqoIfQpMkqgde0NG6obKCoRUk
