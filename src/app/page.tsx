@@ -8,6 +8,7 @@ import { FunnelChart } from "@/components/FunnelChart";
 import { AnalyticsCharts } from "@/components/AnalyticsCharts";
 import { DataTable } from "@/components/DataTable";
 import { Filters } from "@/components/Filters";
+import { Accordion } from "@/components/Accordion";
 
 interface FilterState {
   search: string;
@@ -43,8 +44,12 @@ export default function Dashboard() {
         <Header lastUpdated={lastUpdated} onRefresh={handleRefresh} />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
           <KPICards refreshKey={refreshKey} />
-          <FunnelChart refreshKey={refreshKey} />
-          <AnalyticsCharts refreshKey={refreshKey} />
+          <Accordion title="Pipeline de Conversión" subtitle="Distribución de leads por etapa">
+            <FunnelChart refreshKey={refreshKey} />
+          </Accordion>
+          <Accordion title="Análisis de Tendencias" subtitle="Evolución semanal del pipeline">
+            <AnalyticsCharts refreshKey={refreshKey} />
+          </Accordion>
           <Filters filters={filters} onFilterChange={handleFilterChange} />
           <DataTable key={refreshKey} filters={filters} />
         </main>

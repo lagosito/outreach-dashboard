@@ -149,10 +149,7 @@ export function AnalyticsCharts({ refreshKey }: AnalyticsChartsProps) {
   });
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-sm font-semibold text-[var(--text-primary)] px-1">
-        Análisis de Tendencias
-      </h2>
+    <div className="pt-4 space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Area Chart - Weekly Leads Trend */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-xl p-6">

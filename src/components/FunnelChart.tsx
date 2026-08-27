@@ -23,14 +23,14 @@ const PIPELINE_ESTADOS = [
 ];
 
 const COLORS = [
-  "#3b82f6",  // blue
-  "#6366f1",  // indigo
-  "#06b6d4",  // cyan
-  "#f59e0b",  // amber
-  "#a855f7",  // purple
-  "#a855f7",  // purple (follow-ups)
-  "#a855f7",  // purple (follow-ups)
-  "#22c55e",  // green
+  "#3b82f6",
+  "#6366f1",
+  "#06b6d4",
+  "#f59e0b",
+  "#a855f7",
+  "#a855f7",
+  "#a855f7",
+  "#22c55e",
 ];
 
 export function FunnelChart({ refreshKey }: FunnelChartProps) {
@@ -57,10 +57,9 @@ export function FunnelChart({ refreshKey }: FunnelChartProps) {
 
   if (loading) {
     return (
-      <div className="bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-xl p-6 animate-pulse">
-        <div className="h-5 bg-[var(--bg-tertiary)] rounded w-40 mb-4" />
+      <div className="pt-4 space-y-2 animate-pulse">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-10 bg-[var(--bg-tertiary)] rounded mb-2" />
+          <div key={i} className="h-10 bg-[var(--bg-tertiary)] rounded" />
         ))}
       </div>
     );
@@ -70,22 +69,7 @@ export function FunnelChart({ refreshKey }: FunnelChartProps) {
   const totalActive = data.reduce((s, d) => s + d.count, 0);
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-xl p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-            Pipeline de Conversión
-          </h2>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            Distribución de leads por etapa
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-[var(--success)] pulse-dot" />
-          <span className="text-xs text-[var(--text-muted)]">En vivo</span>
-        </div>
-      </div>
-
+    <div className="pt-4">
       <div className="space-y-2">
         {PIPELINE_ESTADOS.map((estado, index) => {
           const item = data.find((d) => d.estado === estado);
