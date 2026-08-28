@@ -398,6 +398,18 @@ export function DataTable({ filters }: DataTableProps) {
 
                           {/* Action links */}
                           <div className="flex items-center gap-4 pt-3 border-t border-[var(--border-primary)]">
+                            {contact.job_link && contact.job_link.trim() && (
+                              <a
+                                href={contact.job_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center gap-1.5 text-xs font-medium text-[var(--info)] hover:underline"
+                              >
+                                <Briefcase className="w-3.5 h-3.5" />
+                                View job posting
+                              </a>
+                            )}
                             {contact.email_draft && contact.email_draft.trim() && (
                               <button
                                 onClick={(e) => {
@@ -439,18 +451,6 @@ export function DataTable({ filters }: DataTableProps) {
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
                                 Message on LinkedIn
-                              </a>
-                            )}
-                            {contact.job_link && contact.job_link.trim() && (
-                              <a
-                                href={contact.job_link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1.5 text-xs font-medium text-[var(--info)] hover:underline"
-                              >
-                                <Briefcase className="w-3.5 h-3.5" />
-                                Job posting
                               </a>
                             )}
                             {contact.gmail_thread_id && contact.gmail_thread_id.trim() && (
