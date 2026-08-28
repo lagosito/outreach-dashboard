@@ -435,10 +435,10 @@ export function DataTable({ filters }: DataTableProps) {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1.5 text-xs font-medium text-[var(--info)] hover:underline"
+                                className="flex items-center gap-1.5 text-xs font-medium text-purple-400 hover:underline"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
-                                LinkedIn
+                                Message on LinkedIn
                               </a>
                             )}
                             {contact.job_link && contact.job_link.trim() && (
