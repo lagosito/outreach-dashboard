@@ -121,7 +121,7 @@ export function FunnelChart({ refreshKey }: FunnelChartProps) {
           <p className="text-lg font-bold text-[var(--text-primary)]">
             {totalActive}
           </p>
-          <p className="text-xs text-[var(--text-muted)]">Total en Pipeline</p>
+          <p className="text-xs text-[var(--text-muted)]">Total in Pipeline</p>
         </div>
         <div className="text-center">
           <p className="text-lg font-bold text-[var(--text-primary)]">
@@ -132,7 +132,7 @@ export function FunnelChart({ refreshKey }: FunnelChartProps) {
               : 0}
             %
           </p>
-          <p className="text-xs text-[var(--text-muted)]">Tasa de Conversión</p>
+          <p className="text-xs text-[var(--text-muted)]">Conversion Rate</p>
         </div>
         <div className="text-center">
           <p className="text-lg font-bold text-[var(--text-primary)]">
@@ -143,7 +143,7 @@ export function FunnelChart({ refreshKey }: FunnelChartProps) {
               : 0}
             %
           </p>
-          <p className="text-xs text-[var(--text-muted)]">Tasa de Investigación</p>
+          <p className="text-xs text-[var(--text-muted)]">Research Rate</p>
         </div>
       </div>
     </div>

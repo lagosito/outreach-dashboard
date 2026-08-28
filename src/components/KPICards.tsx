@@ -49,7 +49,7 @@ function KPICard({ title, value, icon, trend, color, suffix }: KPICardProps) {
           <span className={`text-xs font-medium ${trend >= 0 ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
             {trend >= 0 ? "+" : ""}{trend.toFixed(1)}%
           </span>
-          <span className="text-xs text-[var(--text-muted)]">vs periodo anterior</span>
+          <span className="text-xs text-[var(--text-muted)]">vs previous period</span>
         </div>
       )}
     </div>
@@ -106,25 +106,25 @@ export function KPICards({ refreshKey }: KPICardsProps) {
         trend={data.growthRate}
       />
       <KPICard
-        title="Email Encontrado"
+        title="Email Found"
         value={data.emailFound}
         icon={<Mail className="w-4 h-4 text-white" />}
         color="bg-[var(--info)]"
       />
       <KPICard
-        title="Draft Listo"
+        title="Draft Ready"
         value={data.draftsReady}
         icon={<FileText className="w-4 h-4 text-white" />}
         color="bg-[var(--warning)]"
       />
       <KPICard
-        title="Enviado"
+        title="Sent"
         value={data.sent}
         icon={<Send className="w-4 h-4 text-white" />}
         color="bg-purple-600"
       />
       <KPICard
-        title="Respondió"
+        title="Responded"
         value={data.responded}
         icon={<Reply className="w-4 h-4 text-white" />}
         color="bg-[var(--success)]"
@@ -132,7 +132,7 @@ export function KPICards({ refreshKey }: KPICardsProps) {
         trend={data.conversionRate}
       />
       <KPICard
-        title="Descartados"
+        title="Discarded"
         value={data.descartado}
         icon={<XCircle className="w-4 h-4 text-white" />}
         color="bg-red-600"

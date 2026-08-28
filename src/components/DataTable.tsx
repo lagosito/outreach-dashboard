@@ -12,6 +12,9 @@ import {
   Mail,
   AlertTriangle,
   Briefcase,
+  Copy,
+  Check,
+  Send,
 } from "lucide-react";
 
 interface Contact {
@@ -104,6 +107,7 @@ export function DataTable({ filters }: DataTableProps) {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [discardingId, setDiscardingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -166,6 +170,16 @@ export function DataTable({ filters }: DataTableProps) {
     }
   };
 
+  const handleCopyDraft = async (id: string, draft: string) => {
+    try {
+      await navigator.clipboard.writeText(draft);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ChevronsUpDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />;
     return sortOrder === "asc" ? (
@@ -193,10 +207,10 @@ export function DataTable({ filters }: DataTableProps) {
       <div className="px-6 py-4 border-b border-[var(--border-primary)] flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-            Directorio de Leads
+            Lead Directory
           </h2>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            {data?.total ?? 0} registros encontrados
+            {data?.total ?? 0} records
           </p>
         </div>
       </div>
@@ -323,75 +337,96 @@ export function DataTable({ filters }: DataTableProps) {
                   {isExpanded && (
                     <tr>
                       <td colSpan={8} className="px-4 py-0">
-                        <div className="bg-[var(--bg-tertiary)] rounded-lg mb-2 mx-2 p-4 space-y-3 animate-[fadeIn_0.2s_ease-out]">
+                        <div className="bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-xl mb-3 mx-2 p-5 space-y-4 animate-[fadeIn_0.2s_ease-out] shadow-sm">
                           {/* Hipotesis */}
                           <div>
-                            <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
-                              Hipótesis
+                            <h4 className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest mb-1.5">
+                              Hypothesis
                             </h4>
-                            <p className="text-sm text-[var(--text-secondary)]">
-                              {contact.hipotesis || "Sin hipótesis definida"}
+                            <p className="text-sm text-[var(--text-primary)] leading-relaxed">
+                              {contact.hipotesis || "No hypothesis defined"}
                             </p>
                           </div>
 
                           {/* Email Draft */}
                           {contact.email_draft && contact.email_draft.trim() && (
                             <div>
-                              <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
-                                Borrador de Email
+                              <h4 className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest mb-1.5">
+                                Email Draft
                               </h4>
-                              <div className="bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-lg p-3 text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
+                              <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-4 text-sm text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap font-mono">
                                 {contact.email_draft}
                               </div>
                             </div>
                           )}
 
                           {/* Dates */}
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-[var(--border-primary)]">
                             <div>
-                              <h4 className="text-xs font-semibold text-[var(--text-muted)] mb-1">
-                                Creado
+                              <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">
+                                Created
                               </h4>
-                              <p className="text-sm text-[var(--text-secondary)]">
+                              <p className="text-xs text-[var(--text-secondary)]">
                                 {formatDateTime(contact.created_at)}
                               </p>
                             </div>
                             <div>
-                              <h4 className="text-xs font-semibold text-[var(--text-muted)] mb-1">
-                                Fecha Envío
+                              <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">
+                                Sent
                               </h4>
-                              <p className="text-sm text-[var(--text-secondary)]">
+                              <p className="text-xs text-[var(--text-secondary)]">
                                 {formatDate(contact.fecha_envio)}
                               </p>
                             </div>
                             <div>
-                              <h4 className="text-xs font-semibold text-[var(--text-muted)] mb-1">
+                              <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">
                                 Follow-up 1
                               </h4>
-                              <p className="text-sm text-[var(--text-secondary)]">
+                              <p className="text-xs text-[var(--text-secondary)]">
                                 {formatDate(contact.fecha_followup_1)}
                               </p>
                             </div>
                             <div>
-                              <h4 className="text-xs font-semibold text-[var(--text-muted)] mb-1">
+                              <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">
                                 Follow-up 2
                               </h4>
-                              <p className="text-sm text-[var(--text-secondary)]">
+                              <p className="text-xs text-[var(--text-secondary)]">
                                 {formatDate(contact.fecha_followup_2)}
                               </p>
                             </div>
                           </div>
 
                           {/* Action links */}
-                          <div className="flex items-center gap-3 pt-2 border-t border-[var(--border-primary)]">
+                          <div className="flex items-center gap-4 pt-3 border-t border-[var(--border-primary)]">
+                            {contact.email_draft && contact.email_draft.trim() && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopyDraft(contact.id, contact.email_draft);
+                                }}
+                                className="flex items-center gap-1.5 text-xs font-medium text-[var(--success)] hover:underline"
+                              >
+                                {copiedId === contact.id ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5" />
+                                    Copied!
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5" />
+                                    Copy email draft
+                                  </>
+                                )}
+                              </button>
+                            )}
                             {contact.contacto_email && contact.contacto_email.trim() && (
                               <a
-                                href={`mailto:${contact.contacto_email}?cc=gabriel@makehappen.de`}
+                                href={`mailto:${contact.contacto_email}?cc=gabriel@makehappen.de&subject=${encodeURIComponent(`Re: ${contact.cargo} at ${contact.empresa}`)}`}
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1.5 text-xs text-[var(--info)] hover:underline"
+                                className="flex items-center gap-1.5 text-xs font-medium text-[var(--info)] hover:underline"
                               >
-                                <Mail className="w-3.5 h-3.5" />
-                                Enviar email
+                                <Send className="w-3.5 h-3.5" />
+                                Send email
                               </a>
                             )}
                             {contact.contacto_linkedin && contact.contacto_linkedin.trim() && (
@@ -400,10 +435,10 @@ export function DataTable({ filters }: DataTableProps) {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1.5 text-xs text-[var(--info)] hover:underline"
+                                className="flex items-center gap-1.5 text-xs font-medium text-[var(--info)] hover:underline"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
-                                Ver LinkedIn
+                                LinkedIn
                               </a>
                             )}
                             {contact.job_link && contact.job_link.trim() && (
@@ -412,16 +447,16 @@ export function DataTable({ filters }: DataTableProps) {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1.5 text-xs text-[var(--info)] hover:underline"
+                                className="flex items-center gap-1.5 text-xs font-medium text-[var(--info)] hover:underline"
                               >
                                 <Briefcase className="w-3.5 h-3.5" />
-                                Ver vacante
+                                Job posting
                               </a>
                             )}
                             {contact.gmail_thread_id && contact.gmail_thread_id.trim() && (
                               <span className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
                                 <AlertTriangle className="w-3.5 h-3.5" />
-                                Thread ID: {contact.gmail_thread_id}
+                                Thread: {contact.gmail_thread_id}
                               </span>
                             )}
                           </div>
@@ -437,7 +472,7 @@ export function DataTable({ filters }: DataTableProps) {
               <tr>
                 <td colSpan={8} className="px-4 py-12 text-center">
                   <p className="text-sm text-[var(--text-muted)]">
-                    No se encontraron leads con los filtros seleccionados
+                    No leads found with the selected filters
                   </p>
                 </td>
               </tr>
@@ -450,8 +485,8 @@ export function DataTable({ filters }: DataTableProps) {
       {data && data.totalPages > 1 && (
         <div className="px-6 py-4 border-t border-[var(--border-primary)] flex items-center justify-between">
           <p className="text-xs text-[var(--text-muted)]">
-            Mostrando {(data.page - 1) * data.limit + 1}–
-            {Math.min(data.page * data.limit, data.total)} de {data.total}
+            Showing {(data.page - 1) * data.limit + 1}–
+            {Math.min(data.page * data.limit, data.total)} of {data.total}
           </p>
           <div className="flex items-center gap-1">
             <button
