@@ -41,8 +41,8 @@ export async function GET(request: NextRequest) {
     if (estado && estado !== "all") {
       params.estado = `eq.${estado}`;
     }
-    params.contacto_email = "not.is.null";
-    // Can't do "not empty string" directly, but we'll filter client-side
+    // AND: not null AND not empty string
+    params.and = "(contacto_email.not.is.null,contacto_email.neq.)";
   } else if (emailStatus === "missing") {
     if (estado && estado !== "all") {
       params.estado = `eq.${estado}`;
