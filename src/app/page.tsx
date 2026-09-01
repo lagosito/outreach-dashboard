@@ -51,7 +51,7 @@ export default function Dashboard() {
             <AnalyticsCharts refreshKey={refreshKey} />
           </Accordion>
           <Filters filters={filters} onFilterChange={handleFilterChange} />
-          <DataTable key={refreshKey} filters={filters} />
+          <DataTable key={refreshKey} filters={filters} onFilterChange={handleFilterChange} />
         </main>
       </div>
     </ThemeProvider>

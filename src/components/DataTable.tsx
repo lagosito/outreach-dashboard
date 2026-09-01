@@ -53,6 +53,7 @@ interface Filters {
 
 interface DataTableProps {
   filters: Filters;
+  onFilterChange?: (key: keyof Filters, value: string) => void;
 }
 
 type SortField = "empresa" | "cargo" | "contacto_nombre" | "estado" | "created_at" | "fecha_envio";
@@ -129,7 +130,7 @@ function formatDateTime(dateStr: string | null): string {
   });
 }
 
-export function DataTable({ filters }: DataTableProps) {
+export function DataTable({ filters, onFilterChange }: DataTableProps) {
   const [data, setData] = useState<ContactsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -292,8 +293,19 @@ export function DataTable({ filters }: DataTableProps) {
                   Contacto <SortIcon field="contacto_nombre" />
                 </div>
               </th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider hidden md:table-cell">
-                Email
+              <th
+                className="text-left px-4 py-3 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider hidden md:table-cell cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                onClick={() => {
+                  if (!onFilterChange) return;
+                  const cycle: Record<string, string> = { all: "found", found: "missing", missing: "all" };
+                  onFilterChange("emailStatus", cycle[filters.emailStatus] || "all");
+                }}
+              >
+                <div className="flex items-center gap-1">
+                  Email
+                  {filters.emailStatus === "found" && <span className="text-green-400">✓</span>}
+                  {filters.emailStatus === "missing" && <span className="text-red-400">✗</span>}
+                </div>
               </th>
               <th
                 className="text-left px-4 py-3 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--text-primary)] transition-colors"
