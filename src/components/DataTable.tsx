@@ -108,6 +108,7 @@ export function DataTable({ filters }: DataTableProps) {
   const [page, setPage] = useState(1);
   const [discardingId, setDiscardingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -177,6 +178,22 @@ export function DataTable({ filters }: DataTableProps) {
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
       console.error("Failed to copy:", err);
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, estado: string) => {
+    setUpdatingStatusId(id);
+    try {
+      await fetch("/api/contacts/update-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, estado }),
+      });
+      await fetchData();
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    } finally {
+      setUpdatingStatusId(null);
     }
   };
 
@@ -458,6 +475,62 @@ export function DataTable({ filters }: DataTableProps) {
                                 <AlertTriangle className="w-3.5 h-3.5" />
                                 Thread: {contact.gmail_thread_id}
                               </span>
+                            )}
+                          </div>
+
+                          {/* Status update buttons */}
+                          <div className="flex items-center gap-3 pt-2">
+                            <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                              Update status:
+                            </span>
+                            {contact.estado !== "Enviado" && contact.estado !== "Descartado" && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateStatus(contact.id, "Enviado");
+                                }}
+                                disabled={updatingStatusId === contact.id}
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-500/15 text-purple-400 border border-purple-500/20 hover:bg-purple-500/25 transition-colors disabled:opacity-50"
+                              >
+                                <Send className="w-3 h-3" />
+                                Mark as Sent
+                              </button>
+                            )}
+                            {(contact.estado === "Enviado" || contact.estado === "Follow-up 1") && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateStatus(contact.id, "Follow-up 1");
+                                }}
+                                disabled={updatingStatusId === contact.id}
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-500/15 text-purple-400 border border-purple-500/20 hover:bg-purple-500/25 transition-colors disabled:opacity-50"
+                              >
+                                Follow-up 1
+                              </button>
+                            )}
+                            {(contact.estado === "Enviado" || contact.estado === "Follow-up 1" || contact.estado === "Follow-up 2") && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateStatus(contact.id, "Follow-up 2");
+                                }}
+                                disabled={updatingStatusId === contact.id}
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-500/15 text-purple-400 border border-purple-500/20 hover:bg-purple-500/25 transition-colors disabled:opacity-50"
+                              >
+                                Follow-up 2
+                              </button>
+                            )}
+                            {contact.estado !== "Respondió" && contact.estado !== "Descartado" && contact.estado !== "Handoff" && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateStatus(contact.id, "Respondió");
+                                }}
+                                disabled={updatingStatusId === contact.id}
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 transition-colors disabled:opacity-50"
+                              >
+                                ✓ Responded
+                              </button>
                             )}
                           </div>
                         </div>
