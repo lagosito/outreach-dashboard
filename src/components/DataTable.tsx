@@ -72,6 +72,36 @@ const ESTADO_COLORS: Record<string, string> = {
   Descartado: "bg-red-500/15 text-red-400 border-red-500/20",
 };
 
+const ROW_COLORS: Record<string, string> = {
+  Nuevo: "border-l-2 border-l-blue-500/40",
+  Investigado: "border-l-2 border-l-indigo-500/40",
+  "Contacto encontrado": "border-l-2 border-l-cyan-500/40",
+  "FU1 Draft listo": "border-l-2 border-l-amber-500/40",
+  "Draft listo": "border-l-2 border-l-amber-500/40",
+  Enviado: "border-l-2 border-l-purple-500/40",
+  "Follow-up 1": "border-l-2 border-l-purple-400/40",
+  "Follow-up 2": "border-l-2 border-l-purple-300/40",
+  Respondió: "border-l-2 border-l-green-500/40",
+  Handoff: "border-l-2 border-l-green-400/40",
+  "Cerrado sin respuesta": "border-l-2 border-l-gray-500/40",
+  Descartado: "border-l-2 border-l-red-500/40",
+};
+
+const ROW_BG: Record<string, string> = {
+  Nuevo: "bg-blue-500/[0.04]",
+  Investigado: "bg-indigo-500/[0.04]",
+  "Contacto encontrado": "bg-cyan-500/[0.04]",
+  "FU1 Draft listo": "bg-amber-500/[0.04]",
+  "Draft listo": "bg-amber-500/[0.04]",
+  Enviado: "bg-purple-500/[0.04]",
+  "Follow-up 1": "bg-purple-400/[0.04]",
+  "Follow-up 2": "bg-purple-300/[0.04]",
+  Respondió: "bg-green-500/[0.04]",
+  Handoff: "bg-green-400/[0.04]",
+  "Cerrado sin respuesta": "bg-gray-500/[0.04]",
+  Descartado: "bg-red-500/[0.04]",
+};
+
 function EstadoBadge({ estado }: { estado: string }) {
   const colorClass = ESTADO_COLORS[estado] || "bg-gray-500/15 text-gray-400 border-gray-500/20";
   return (
@@ -293,7 +323,7 @@ export function DataTable({ filters }: DataTableProps) {
                     key={contact.id}
                     className={`border-b border-[var(--border-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer ${
                       contact.estado === "Descartado" ? "opacity-50" : ""
-                    }`}
+                    } ${ROW_BG[contact.estado] || ""} ${ROW_COLORS[contact.estado] || ""}`}
                     onClick={() => setExpandedId(isExpanded ? null : contact.id)}
                   >
                     <td className="px-4 py-3">
