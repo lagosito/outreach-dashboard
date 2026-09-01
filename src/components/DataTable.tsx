@@ -297,14 +297,13 @@ export function DataTable({ filters, onFilterChange }: DataTableProps) {
                 className="text-left px-4 py-3 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider hidden md:table-cell cursor-pointer hover:text-[var(--text-primary)] transition-colors"
                 onClick={() => {
                   if (!onFilterChange) return;
-                  const cycle: Record<string, string> = { all: "found", found: "missing", missing: "all" };
-                  onFilterChange("emailStatus", cycle[filters.emailStatus] || "all");
+                  const next = filters.emailStatus === "found" ? "all" : "found";
+                  onFilterChange("emailStatus", next);
                 }}
               >
                 <div className="flex items-center gap-1">
                   Email
                   {filters.emailStatus === "found" && <span className="text-green-400">✓</span>}
-                  {filters.emailStatus === "missing" && <span className="text-red-400">✗</span>}
                 </div>
               </th>
               <th
