@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const sortField = searchParams.get("sortField") || "created_at";
   const sortOrder = searchParams.get("sortOrder") || "desc";
   const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "20");
+  const limit = parseInt(searchParams.get("limit") || "100");
 
   // Build Supabase query params
   const params: Record<string, string> = {};
@@ -60,17 +60,11 @@ export async function GET(request: NextRequest) {
 
   const { data: contacts, total } = await supaGet(params);
 
-  // Filter empty emails client-side for "found" filter
-  let filtered = contacts;
-  if (emailStatus === "found") {
-    filtered = contacts.filter((c) => c.contacto_email && c.contacto_email.trim() !== "");
-  }
-
   return NextResponse.json({
-    contacts: filtered,
-    total: emailStatus === "found" ? filtered.length : total,
+    contacts,
+    total,
     page,
     limit,
-    totalPages: Math.ceil((emailStatus === "found" ? filtered.length : total) / limit),
+    totalPages: Math.ceil(total / limit),
   });
 }

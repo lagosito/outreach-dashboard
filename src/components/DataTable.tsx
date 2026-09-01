@@ -146,7 +146,7 @@ export function DataTable({ filters, onFilterChange }: DataTableProps) {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: "20",
+        limit: "100",
         sortField,
         sortOrder,
       });
