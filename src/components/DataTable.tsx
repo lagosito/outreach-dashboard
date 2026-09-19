@@ -27,6 +27,8 @@ interface Contact {
   contacto_linkedin: string;
   estado: string;
   email_draft: string;
+  email_freelancer: string;
+  linkedin_intro: string;
   hipotesis: string;
   fecha_envio: string | null;
   fecha_followup_1: string | null;
@@ -202,10 +204,10 @@ export function DataTable({ filters, onFilterChange }: DataTableProps) {
     }
   };
 
-  const handleCopyDraft = async (id: string, draft: string) => {
+  const handleCopyDraft = async (copyKey: string, draft: string) => {
     try {
       await navigator.clipboard.writeText(draft);
-      setCopiedId(id);
+      setCopiedId(copyKey);
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
       console.error("Failed to copy:", err);
@@ -422,14 +424,38 @@ export function DataTable({ filters, onFilterChange }: DataTableProps) {
                             </p>
                           </div>
 
-                          {/* Email Draft */}
+                          {/* Email Draft - Make Happen */}
                           {contact.email_draft && contact.email_draft.trim() && (
                             <div>
                               <h4 className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest mb-1.5">
-                                Email Draft
+                                Email Draft — Make Happen
                               </h4>
                               <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-4 text-sm text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap font-mono">
                                 {contact.email_draft}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Email Draft - Freelancer */}
+                          {contact.email_freelancer && contact.email_freelancer.trim() && (
+                            <div>
+                              <h4 className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-1.5">
+                                Email Draft — Gabriel Freelancer
+                              </h4>
+                              <div className="bg-[var(--bg-primary)] border border-purple-500/20 rounded-lg p-4 text-sm text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap font-mono">
+                                {contact.email_freelancer}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* LinkedIn Intro */}
+                          {contact.linkedin_intro && contact.linkedin_intro.trim() && (
+                            <div>
+                              <h4 className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-1.5">
+                                LinkedIn Intro
+                              </h4>
+                              <div className="bg-[var(--bg-primary)] border border-purple-500/20 rounded-lg p-4 text-sm text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap">
+                                {contact.linkedin_intro}
                               </div>
                             </div>
                           )}
@@ -488,11 +514,11 @@ export function DataTable({ filters, onFilterChange }: DataTableProps) {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleCopyDraft(contact.id, contact.email_draft);
+                                  handleCopyDraft(`${contact.id}-mh`, contact.email_draft);
                                 }}
                                 className="flex items-center gap-1.5 text-xs font-medium text-[var(--success)] hover:underline"
                               >
-                                {copiedId === contact.id ? (
+                                {copiedId === `${contact.id}-mh` ? (
                                   <>
                                     <Check className="w-3.5 h-3.5" />
                                     Copied!
@@ -500,7 +526,49 @@ export function DataTable({ filters, onFilterChange }: DataTableProps) {
                                 ) : (
                                   <>
                                     <Copy className="w-3.5 h-3.5" />
-                                    Copy email draft
+                                    Copy MH email
+                                  </>
+                                )}
+                              </button>
+                            )}
+                            {contact.email_freelancer && contact.email_freelancer.trim() && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopyDraft(`${contact.id}-fl`, contact.email_freelancer);
+                                }}
+                                className="flex items-center gap-1.5 text-xs font-medium text-purple-400 hover:underline"
+                              >
+                                {copiedId === `${contact.id}-fl` ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5" />
+                                    Copied!
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5" />
+                                    Copy freelancer email
+                                  </>
+                                )}
+                              </button>
+                            )}
+                            {contact.linkedin_intro && contact.linkedin_intro.trim() && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopyDraft(`${contact.id}-li`, contact.linkedin_intro);
+                                }}
+                                className="flex items-center gap-1.5 text-xs font-medium text-purple-400 hover:underline"
+                              >
+                                {copiedId === `${contact.id}-li` ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5" />
+                                    Copied!
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5" />
+                                    Copy LinkedIn intro
                                   </>
                                 )}
                               </button>

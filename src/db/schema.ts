@@ -10,6 +10,8 @@ export interface Contact {
   contacto_linkedin: string;
   estado: string;
   email_draft: string;
+  email_freelancer: string;
+  linkedin_intro: string;
   hipotesis: string;
   fecha_envio: string | null;
   fecha_followup_1: string | null;
