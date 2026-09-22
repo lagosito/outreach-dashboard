@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_ANON_KEY;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !key) {
       return Response.json({ ok: false, error: "Missing env vars" }, { status: 500 });
     }
