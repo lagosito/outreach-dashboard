@@ -1,59 +1,201 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { Header } from "@/components/Header";
-import { KPICards } from "@/components/KPICards";
-import { FunnelChart } from "@/components/FunnelChart";
-import { AnalyticsCharts } from "@/components/AnalyticsCharts";
-import { DataTable } from "@/components/DataTable";
-import { Filters } from "@/components/Filters";
-import { Accordion } from "@/components/Accordion";
+import { ContactsTab } from "@/components/jobi/ContactsTab";
+import { DirectoryTab } from "@/components/jobi/DirectoryTab";
+import { Header } from "@/components/jobi/Header";
+import { LinkedInTab } from "@/components/jobi/LinkedInTab";
+import { ToastProvider, useToast } from "@/components/jobi/Toast";
+import {
+  buildDirectory,
+  stageOf,
+  type Contact,
+  type LinkedInCounts,
+} from "@/lib/jobi";
 
-interface FilterState {
-  search: string;
-  estado: string;
-  emailStatus: string;
-  dateFrom: string;
-  dateTo: string;
-}
+type TabId = "contacts" | "linkedin" | "directory";
 
-export default function Dashboard() {
-  const [filters, setFilters] = useState<FilterState>({
-    search: "",
-    estado: "all",
-    emailStatus: "all",
-    dateFrom: "",
-    dateTo: "",
-  });
+const EMPTY_COUNTS: LinkedInCounts = {
+  posts: 0,
+  draft_ready: 0,
+  published: 0,
+  avg_score: 0,
+  queue: 0,
+};
+
+function Dashboard() {
+  const notify = useToast();
+  const [tab, setTab] = useState<TabId>("contacts");
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [liCounts, setLiCounts] = useState<LinkedInCounts>(EMPTY_COUNTS);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const handleRefresh = useCallback(() => {
-    setRefreshKey((k) => k + 1);
-    setLastUpdated(new Date());
-  }, []);
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    fetch("/api/contacts?all=1")
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (!alive) return;
+        setContacts(Array.isArray(data.contacts) ? data.contacts : []);
+        setError(null);
+      })
+      .catch((err: Error) => {
+        if (!alive) return;
+        setError(`No se pudieron cargar los contactos (${err.message}).`);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [refreshKey]);
 
-  const handleFilterChange = useCallback((key: keyof FilterState, value: string) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  }, []);
+  const people = useMemo(() => buildDirectory(contacts), [contacts]);
+  const activeContacts = useMemo(
+    () => contacts.filter((c) => stageOf(c.estado) !== "descartado").length,
+    [contacts]
+  );
+
+  const onStatusChange = useCallback(
+    async (id: string, estado: string) => {
+      const isDiscard = estado === "Descartado";
+      const url = isDiscard ? "/api/contacts/discard" : "/api/contacts/update-status";
+      const body = isDiscard ? { id } : { id, estado };
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        setContacts((prev) =>
+          prev.map((contact) =>
+            contact.id === id
+              ? {
+                  ...contact,
+                  estado,
+                  fecha_envio:
+                    !isDiscard && estado === "Enviado" && !contact.fecha_envio
+                      ? new Date().toISOString()
+                      : contact.fecha_envio,
+                  updated_at: new Date().toISOString(),
+                }
+              : contact
+          )
+        );
+        notify(
+          isDiscard
+            ? "Contacto descartado"
+            : estado === "Enviado"
+              ? "Marcado como enviado"
+              : "Marcado como respondido"
+        );
+      } catch {
+        notify("No se pudo actualizar el estado");
+      }
+    },
+    [notify]
+  );
+
+  const refresh = useCallback(() => setRefreshKey((key) => key + 1), []);
+  const handleCounts = useCallback(
+    (counts: LinkedInCounts) => setLiCounts(counts),
+    []
+  );
 
   return (
-    <ThemeProvider>
-      <div className="min-h-screen transition-colors duration-200">
-        <Header lastUpdated={lastUpdated} onRefresh={handleRefresh} />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-          <KPICards refreshKey={refreshKey} />
-          <Accordion title="Pipeline Conversion" subtitle="Lead distribution by stage">
-            <FunnelChart refreshKey={refreshKey} />
-          </Accordion>
-          <Accordion title="Análisis de Tendencias" subtitle="Evolución semanal del pipeline">
-            <AnalyticsCharts refreshKey={refreshKey} />
-          </Accordion>
-          <Filters filters={filters} onFilterChange={handleFilterChange} />
-          <DataTable key={refreshKey} filters={filters} onFilterChange={handleFilterChange} />
-        </main>
+    <div className="min-h-screen">
+      <div className="wrap">
+        <Header demo={liCounts.posts === 0} onRefresh={refresh} />
+
+        <div className="tabrow">
+          <nav className="tabs" role="tablist" aria-label="Secciones">
+            <button
+              role="tab"
+              id="tab-contacts"
+              aria-controls="p-contacts"
+              aria-selected={tab === "contacts"}
+              data-tab="contacts"
+              onClick={() => setTab("contacts")}
+            >
+              Contactos <span className="count">{activeContacts}</span>
+            </button>
+            <button
+              role="tab"
+              id="tab-linkedin"
+              aria-controls="p-linkedin"
+              aria-selected={tab === "linkedin"}
+              data-tab="linkedin"
+              onClick={() => setTab("linkedin")}
+            >
+              LinkedIn <span className="count">{liCounts.posts}</span>
+              {liCounts.queue > 0 ? (
+                <span className="count hot">{liCounts.queue}</span>
+              ) : null}
+            </button>
+            <button
+              role="tab"
+              id="tab-directory"
+              aria-controls="p-directory"
+              aria-selected={tab === "directory"}
+              data-tab="directory"
+              onClick={() => setTab("directory")}
+            >
+              Directorio <span className="count">{people.length}</span>
+            </button>
+          </nav>
+        </div>
+
+        <section
+          id="p-contacts"
+          role="tabpanel"
+          aria-labelledby="tab-contacts"
+          hidden={tab !== "contacts"}
+        >
+          <ContactsTab
+            contacts={contacts}
+            loading={loading}
+            error={error}
+            onStatusChange={onStatusChange}
+          />
+        </section>
+
+        <section
+          id="p-linkedin"
+          role="tabpanel"
+          aria-labelledby="tab-linkedin"
+          hidden={tab !== "linkedin"}
+        >
+          <LinkedInTab onCounts={handleCounts} refreshKey={refreshKey} />
+        </section>
+
+        <section
+          id="p-directory"
+          role="tabpanel"
+          aria-labelledby="tab-directory"
+          hidden={tab !== "directory"}
+        >
+          <DirectoryTab people={people} />
+        </section>
       </div>
+    </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <ThemeProvider>
+      <ToastProvider>
+        <Dashboard />
+      </ToastProvider>
     </ThemeProvider>
   );
 }

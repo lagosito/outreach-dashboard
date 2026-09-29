@@ -3,6 +3,22 @@ import { supaGet } from "@/db";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
+
+  // `all=1` returns every row (including descartados) for the JOBI tabs, which
+  // filter and count client side. Without it the original behaviour is kept.
+  if (searchParams.get("all") === "1") {
+    const limit = Math.min(parseInt(searchParams.get("limit") || "2000", 10), 5000);
+    const sortField = searchParams.get("sortField") || "created_at";
+    const sortOrder = searchParams.get("sortOrder") || "desc";
+    const params: Record<string, string> = {
+      order: `${sortField}.${sortOrder}`,
+      limit: String(limit),
+      offset: "0",
+    };
+    const { data: contacts, total } = await supaGet(params, { allStates: true });
+    return NextResponse.json({ contacts, total, page: 1, limit, totalPages: 1 });
+  }
+
   const search = searchParams.get("search") || "";
   const estado = searchParams.get("estado") || "";
   const emailStatus = searchParams.get("emailStatus") || "";

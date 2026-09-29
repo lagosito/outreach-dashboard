@@ -20,6 +20,8 @@ export interface Contact {
   fecha_followup_1: string | null;
   fecha_followup_2: string | null;
   gmail_thread_id: string;
+  airtable_id: string | null;
+  fuente: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -41,11 +43,12 @@ function headers(extra?: Record<string, string>) {
 }
 
 export async function supaGet(
-  params: Record<string, string> = {}
+  params: Record<string, string> = {},
+  opts: { allStates?: boolean } = {}
 ): Promise<{ data: Contact[]; total: number }> {
   const url = new URL(`${SUPABASE_URL}/rest/v1/${TABLE}`);
   // Default: exclude descartado, order by created_at desc
-  url.searchParams.set("estado", "not.eq.Descartado");
+  if (!opts.allStates) url.searchParams.set("estado", "not.eq.Descartado");
   url.searchParams.set("order", "created_at.desc");
   url.searchParams.set("limit", "1000");
 
@@ -77,13 +80,58 @@ export async function supaUpdate(
   id: string,
   patch: Record<string, unknown>
 ): Promise<boolean> {
-  const url = `${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${id}`;
+  return supaUpdateIn(TABLE, id, patch);
+}
+
+export async function supaUpdateIn(
+  table: string,
+  id: string,
+  patch: Record<string, unknown>
+): Promise<boolean> {
+  const url = `${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`;
   const res = await fetch(url, {
     method: "PATCH",
     headers: headers({ Prefer: "return=minimal" }),
     body: JSON.stringify(patch),
   });
   return res.ok;
+}
+
+/** Reads a single row (all columns) by id. Returns null when not found. */
+export async function supaFindById<T>(
+  table: string,
+  id: string
+): Promise<T | null> {
+  const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
+  url.searchParams.set("select", "*");
+  url.searchParams.set("id", `eq.${id}`);
+  url.searchParams.set("limit", "1");
+  const res = await fetch(url.toString(), { headers: headers() });
+  if (!res.ok) return null;
+  const rows: T[] = await res.json();
+  return rows[0] ?? null;
+}
+
+/** Reads every row of an arbitrary table (used by linkedin_engagements). */
+export async function supaAll<T>(
+  table: string,
+  params: Record<string, string> = {}
+): Promise<{ data: T[]; total: number }> {
+  const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
+  url.searchParams.set("select", "*");
+  url.searchParams.set("order", "created_at.desc");
+  url.searchParams.set("limit", "1000");
+  for (const [k, v] of Object.entries(params)) {
+    url.searchParams.set(k, v);
+  }
+  const res = await fetch(url.toString(), { headers: headers() });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`supaAll(${table}) failed: ${res.status} ${text}`);
+  }
+  const total = parseInt(res.headers.get("content-range")?.split("/")[1] || "0", 10);
+  const data: T[] = await res.json();
+  return { data, total };
 }
 
 export async function supaSelect(

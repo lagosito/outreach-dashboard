@@ -1,4 +1,4 @@
-// Types only — actual queries use Supabase REST API (src/db/index.ts)
+// Types only. Actual queries use Supabase REST API (src/db/index.ts)
 
 export interface Contact {
   id: string;

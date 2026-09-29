@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supaUpdate } from "@/db";
+import { supaFindById, supaUpdate, type Contact } from "@/db";
 
 const STATUS_DATE_MAP: Record<string, string> = {
   Enviado: "fecha_envio",
@@ -7,6 +7,11 @@ const STATUS_DATE_MAP: Record<string, string> = {
   "Follow-up 2": "fecha_followup_2",
 };
 
+/**
+ * Changes the state of a contact. No action ever deletes or blanks data:
+ * date fields are only written when they are still empty, so an existing
+ * fecha_envio is preserved.
+ */
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const { id, estado } = body;
@@ -17,10 +22,12 @@ export async function POST(request: NextRequest) {
 
   const patch: Record<string, unknown> = { estado, updated_at: new Date().toISOString() };
 
-  // Auto-set date field for sent/followup statuses
   const dateField = STATUS_DATE_MAP[estado];
   if (dateField) {
-    patch[dateField] = new Date().toISOString();
+    const current = await supaFindById<Contact>("outreach_contacts", id);
+    const currentValue = current ? (current as unknown as Record<string, unknown>)[dateField] : null;
+    const isEmpty = currentValue === null || currentValue === undefined || currentValue === "";
+    if (isEmpty) patch[dateField] = new Date().toISOString();
   }
 
   const ok = await supaUpdate(id, patch);
