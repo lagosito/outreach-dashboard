@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JOBI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEEDF4;--surface:#FFFFFF;--surface-2:#F7F6FB;--line:#E4E2EC;--line-strong:#CFCCDB;
+  --ink:#1B1A24;--ink-2:#3B3948;--muted:#5D5A6D;--accent:#5B4BD6;--accent-ink:#3E2FA8;--accent-soft:#E6E1FF;
+  --btn:#1B1A24;--btn-ink:#FFFFFF;
+  --s-nuevo-bg:#EEEDF3;--s-nuevo-fg:#4A4858;--s-nuevo-dot:#8E8BA3;
+  --s-contacto-bg:#DCEBFF;--s-contacto-fg:#1D4F91;--s-contacto-dot:#3B82F6;
+  --s-draft-bg:#FFEBC7;--s-draft-fg:#7A4200;--s-draft-dot:#E08A00;
+  --s-enviado-bg:#D6F2E1;--s-enviado-fg:#17613A;--s-enviado-dot:#22A45D;
+  --s-respondio-bg:#1F6B45;--s-respondio-fg:#FFFFFF;--s-respondio-dot:#9FF0C2;
+  --s-descartado-bg:#F8DDE0;--s-descartado-fg:#8E2433;--s-descartado-dot:#E0566A;
+  --warn:#8A4B00;--danger:#8E2433;--danger-line:#F2C4CA;--ok:#17613A;
+  --cream:#FCF9F2;--warm:#FBEFCB;--warm-ink:#8A5A00;--link:#2463C9;--p-draft-bg:#FFF7DE;--p-draft-line:#F4D983;--p-draft-fg:#A04A00;
+  --fs-xs:12px;--fs-sm:13px;--fs-base:15px;--fs-md:17px;--fs-lg:20px;--fs-xl:24px;
+  --display:"Bricolage Grotesque",Figtree,"Helvetica Neue",Arial,sans-serif;
+  --body:Figtree,"Helvetica Neue",Arial,sans-serif;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15141B;--surface:#1E1D26;--surface-2:#262531;--line:#302E3B;--line-strong:#454256;
+  --ink:#F2F1F7;--ink-2:#D6D4E0;--muted:#A4A1B5;--accent:#9C90FF;--accent-ink:#C9C2FF;--accent-soft:#2E2A4D;
+  --btn:#F2F1F7;--btn-ink:#15141B;
+  --s-nuevo-bg:#2B2A35;--s-nuevo-fg:#C9C7D6;
+  --s-contacto-bg:#1D2F4A;--s-contacto-fg:#A9CBFF;
+  --s-draft-bg:#3D2C10;--s-draft-fg:#FFCF80;
+  --s-enviado-bg:#173826;--s-enviado-fg:#9FE3B9;
+  --s-respondio-bg:#9FE3B9;--s-respondio-fg:#0F2E1D;--s-respondio-dot:#1F6B45;
+  --s-descartado-bg:#40202A;--s-descartado-fg:#FFB3BE;
+  --warn:#FFCF80;--danger:#FFB3BE;--danger-line:#5A2B35;--ok:#9FE3B9;--cream:#211F1A;--warm:#3D3218;--warm-ink:#FFD98A;--link:#8FB6FF;--p-draft-bg:#33280F;--p-draft-line:#6B5220;--p-draft-fg:#FFCF80;
+}}
+:root[data-theme="dark"]{
+  --bg:#15141B;--surface:#1E1D26;--surface-2:#262531;--line:#302E3B;--line-strong:#454256;
+  --ink:#F2F1F7;--ink-2:#D6D4E0;--muted:#A4A1B5;--accent:#9C90FF;--accent-ink:#C9C2FF;--accent-soft:#2E2A4D;
+  --btn:#F2F1F7;--btn-ink:#15141B;
+  --s-nuevo-bg:#2B2A35;--s-nuevo-fg:#C9C7D6;
+  --s-contacto-bg:#1D2F4A;--s-contacto-fg:#A9CBFF;
+  --s-draft-bg:#3D2C10;--s-draft-fg:#FFCF80;
+  --s-enviado-bg:#173826;--s-enviado-fg:#9FE3B9;
+  --s-respondio-bg:#9FE3B9;--s-respondio-fg:#0F2E1D;--s-respondio-dot:#1F6B45;
+  --s-descartado-bg:#40202A;--s-descartado-fg:#FFB3BE;
+  --warn:#FFCF80;--danger:#FFB3BE;--danger-line:#5A2B35;--ok:#9FE3B9;--cream:#211F1A;--warm:#3D3218;--warm-ink:#FFD98A;--link:#8FB6FF;--p-draft-bg:#33280F;--p-draft-line:#6B5220;--p-draft-fg:#FFCF80;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent-ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wrap{max-width:1360px;margin:0 auto;padding:0 28px 48px}
+
+/* header */
+header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 0 18px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:44px;height:44px;border-radius:13px;background:var(--btn);color:var(--btn-ink);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:20px}
+.brand b{font-family:var(--display);font-size:var(--fs-xl);font-weight:700;letter-spacing:.02em;display:block;line-height:1.05}
+.brand span{font-size:var(--fs-sm);color:var(--muted)}
+.live{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:999px;background:var(--surface);font-size:14px;font-weight:600;color:var(--ok)}
+.live i{width:8px;height:8px;border-radius:50%;background:#22A45D}
+.preview-tag{font-size:13px;color:var(--muted);background:var(--surface);border-radius:999px;padding:8px 14px}
+nav.tabs{display:flex;gap:6px;background:var(--surface);padding:6px;border-radius:999px;width:max-content;max-width:100%;overflow-x:auto}
+nav.tabs button{display:flex;align-items:center;gap:8px;height:44px;padding:0 20px;border:0;border-radius:999px;background:transparent;font-weight:600;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{background:var(--btn);color:var(--btn-ink)}
+.count{font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px;background:var(--surface-2);color:var(--ink)}
+nav.tabs button[aria-selected="true"] .count{background:var(--btn-ink);color:var(--btn)}
+.count.hot,nav.tabs button[aria-selected="true"] .count.hot{background:#F4B740;color:#1B1A24}
+.tabrow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+
+/* panels */
+.card{background:var(--surface);border-radius:24px}
+.strip{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:32px;row-gap:12px;padding:20px 24px;min-height:76px}
+.strip h2{margin:0;font-family:var(--display);font-size:var(--fs-lg);font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+.kpis{display:flex;gap:28px;flex-wrap:nowrap;min-width:0;align-items:baseline}
+.kpi{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.kpi b{font-family:var(--display);font-size:var(--fs-xl);font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.kpi span{color:var(--muted);font-size:var(--fs-sm)}
+.linkbtn{border:0;background:none;color:var(--ink-2);font-size:var(--fs-base);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;min-height:44px;padding:0 4px;white-space:nowrap;justify-self:end}
+.linkbtn svg{transition:transform .2s}
+.linkbtn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.strip-body{border-top:1px solid var(--line);padding:20px 24px 24px}
+.queue{border:1.5px solid var(--s-draft-dot)}
+.segbar{display:flex;gap:3px;height:34px;border-radius:12px;overflow:hidden}
+.segbar button{border:0;min-width:24px;font-size:12px;font-weight:700;padding:0 8px;text-align:left;white-space:nowrap;overflow:hidden;cursor:pointer}
+.stack{display:flex;flex-direction:column;gap:14px;margin-bottom:16px}
+
+/* filters */
+.filters{padding:0 22px 20px;display:flex;flex-wrap:wrap;gap:12px 14px;align-items:flex-end}
+.filters .field{flex:0 1 auto}
+.filters .searchbox-field{flex:1 1 240px}
+.filters select.input{width:auto;min-width:150px}
+.strip-body .filters{padding:18px 0 0}
+.linkbtn .count{margin-left:2px}
+.filters input[type=date].input{width:170px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label,.field .lbl{font-size:var(--fs-sm);font-weight:600;color:var(--muted);line-height:1}
+.input{height:48px;border:1.5px solid var(--line-strong);border-radius:14px;background:var(--surface);padding:0 14px;min-width:0;width:100%}
+.searchbox{position:relative}
+.searchbox svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none}
+.searchbox .input{padding-left:44px}
+.seg{display:flex;background:var(--surface-2);border-radius:14px;padding:4px;gap:3px;height:48px}
+.seg button{border:0;background:transparent;border-radius:11px;padding:0 14px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(20,19,30,.16)}
+.seg small{font-size:12px;color:var(--muted);font-weight:600}
+.resultline{padding:16px 24px;color:var(--muted);font-size:var(--fs-sm)}
+.resultline b{color:var(--ink)}
+
+/* table */
+.table{border-top:1px solid var(--line)}
+.thead,.row-main{display:grid;align-items:center;column-gap:20px;padding:0 24px}
+.thead{height:44px;font-size:var(--fs-xs);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+.row{border-top:1px solid var(--line)}
+.row.open{background:var(--cream)}
+.person .inbtn{margin-left:auto}
+.row-main{min-height:76px;padding-top:12px;padding-bottom:12px;cursor:pointer;font-size:var(--fs-base)}
+.cols-contacts{grid-template-columns:minmax(150px,1.2fr) minmax(170px,1.5fr) minmax(220px,1.8fr) 170px 76px 40px}
+.cols-li{grid-template-columns:minmax(200px,1.3fr) minmax(200px,1.9fr) 150px 150px 76px 40px}
+.cols-dir{grid-template-columns:minmax(170px,1.3fr) minmax(130px,1.1fr) minmax(150px,1.3fr) minmax(200px,1.5fr) 110px 100px}
+.cell-strong{font-size:var(--fs-base);font-weight:700;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell-sub{font-size:var(--fs-sm);line-height:1.35;margin-top:2px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.person{display:flex;align-items:center;gap:10px;min-width:0}
+.av{width:38px;height:38px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--accent-soft);color:var(--accent-ink)}
+.av.co{border-radius:11px}
+.inbtn{width:32px;height:32px;flex-shrink:0;border-radius:9px;border:1.5px solid var(--line-strong);display:grid;place-items:center;color:var(--ink)}
+.badge{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 14px;border-radius:999px;font-size:var(--fs-sm);font-weight:600;line-height:1;white-space:nowrap}
+.badge i{width:7px;height:7px;border-radius:50%}
+.chev{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--surface);display:grid;place-items:center;cursor:pointer}
+.chev svg{transition:transform .2s}
+.score{display:flex;align-items:center;gap:10px}
+.score b{font-family:var(--display);font-size:var(--fs-md);font-weight:700;width:26px;font-variant-numeric:tabular-nums}
+.meter{width:60px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%}
+.noemail{color:var(--warn);font-weight:600;font-size:var(--fs-sm);margin-top:2px}
+
+/* expanded contact */
+.detail{padding:24px 24px 28px;border-top:1px solid var(--line)}
+.dcard{background:transparent}
+.dsec{display:flex;flex-direction:column;gap:10px}
+.dsec + .dsec{margin-top:22px}
+.dsec h4{margin:0;font-size:var(--fs-xs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}
+.dsec h4 .tag{letter-spacing:0;text-transform:none;font-size:var(--fs-xs);font-weight:600;color:var(--muted);background:var(--surface-2);border-radius:999px;padding:3px 10px}
+.hyp{margin:0;color:var(--ink-2);font-size:var(--fs-base);line-height:1.7;max-width:100ch}
+.drafts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.draft{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.draft .subj{font-size:var(--fs-sm);line-height:1.45}
+.draft .subj span{color:var(--muted)}
+.draft pre{margin:0;white-space:pre-wrap;font-family:var(--body);font-size:var(--fs-base);line-height:1.7;color:var(--ink)}
+.minibtn{align-self:flex-start;height:40px;padding:0 14px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--surface);font-weight:600;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.timeline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0;margin-top:22px}
+.timeline div span{display:block;font-size:var(--fs-xs);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px}
+.timeline div b{font-weight:600;font-size:14px}
+.timeline div b.pending{color:var(--muted);font-weight:500}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.btn{height:46px;padding:0 18px;border-radius:14px;border:1.5px solid var(--line-strong);background:var(--surface);font-weight:600;font-size:var(--fs-sm);cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink);white-space:nowrap}
+.btn.primary{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.btn.good{color:var(--ok)}
+.btn.bad{color:var(--danger);border-color:var(--danger-line)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.statusbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.statusbar > span{font-size:var(--fs-xs);letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--muted);margin-right:6px}
+
+/* expanded linkedin */
+.meta{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);align-items:center}
+.qitem{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,2fr) 70px auto;gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.qitem:first-child{border-top:0}
+
+.empty{padding:48px 20px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+.empty b{font-family:var(--display);font-size:21px}
+.empty span{color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--btn);color:var(--btn-ink);padding:12px 20px;border-radius:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:10}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.row.li .av{background:var(--warm);color:var(--warm-ink)}
+.chev.plain{border:0;background:transparent;width:40px;height:40px}
+.chev.plain svg{transform:rotate(90deg)}
+.row.open .chev.plain svg{transform:rotate(-90deg)}
+.pill{display:inline-flex;flex-direction:row;align-items:center;gap:8px;height:32px;padding:0 14px;border-radius:999px;font-size:var(--fs-sm);font-weight:600;line-height:1;border:1.5px solid;white-space:nowrap}
+.pill i{flex-shrink:0;width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.pill--draft{background:var(--p-draft-bg);border-color:var(--p-draft-line);color:var(--p-draft-fg)}
+.pill.pill--publicado{background:var(--s-enviado-bg);border-color:transparent;color:var(--s-enviado-fg)}
+.pill.pill--descartado{background:var(--s-descartado-bg);border-color:var(--danger-line);color:var(--s-descartado-fg)}
+.li .meter{width:90px;height:7px;border-radius:4px}
+.li .meter i{border-radius:4px}
+.li-detail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 230px;gap:40px;padding:24px 24px 28px;border-top:1px solid var(--line)}
+.li-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.eyebrow{margin:0;font-size:var(--fs-xs);line-height:1;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.li-post{margin:0;font-size:var(--fs-base);line-height:1.7;color:var(--ink-2);white-space:pre-line}
+.li-detail textarea{width:100%;min-height:200px;resize:vertical;border:1.5px solid var(--line-strong);border-radius:14px;padding:14px 16px;background:var(--surface);line-height:1.7;font-size:var(--fs-base)}
+.li-meta{display:flex;gap:20px;flex-wrap:wrap;align-items:center;font-size:var(--fs-sm);color:var(--muted);line-height:1}
+.li-meta a{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--link);text-decoration:none}
+.li-meta span{display:inline-flex;align-items:center;gap:6px}
+.li-actions{display:flex;flex-direction:column;gap:10px}
+.li-actions .btn{height:48px;font-size:var(--fs-base);justify-content:center;width:100%;border-radius:14px}
+[hidden]{display:none!important}
+
+@media (max-width:1100px){
+  .li-detail{grid-template-columns:1fr 1fr;gap:28px 32px}
+  .li-detail .li-col.act{grid-column:1/-1}
+  .li-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+  .strip{grid-template-columns:auto auto}
+  .strip .kpis{grid-column:1/-1;grid-row:2;flex-wrap:wrap;row-gap:10px}
+  .cols-contacts{grid-template-columns:minmax(150px,1.2fr) minmax(0,1.4fr) minmax(200px,1.6fr) 170px 40px}
+  .cols-contacts > .hide-md{display:none}
+  .cols-li{grid-template-columns:minmax(190px,1.2fr) minmax(0,1.6fr) 130px 150px 40px}
+  .cols-li > .hide-md{display:none}
+}
+@media (max-width:820px){
+  .wrap{padding:0 14px 40px}
+  .drafts{grid-template-columns:1fr}
+  .thead{display:none}
+  .row-main{grid-template-columns:1fr auto!important;gap:6px 12px;padding:14px 16px}
+  .row-main > .hide-sm{display:none}
+  .row-main > .keep-sm{grid-column:1/2}
+  .row-main > .chev-cell{grid-column:2;grid-row:1}
+  .cols-dir .row-main,.row-main.dir{grid-template-columns:1fr!important}
+  .timeline{grid-template-columns:repeat(2,1fr)}
+  .qitem{grid-template-columns:1fr}
+  .li-detail{grid-template-columns:1fr}
+  .li-actions{grid-template-columns:1fr 1fr}
+  .li-detail{grid-template-columns:1fr}
+  .filters .field{flex:1 1 100%}
+  .filters select.input,.filters input[type=date].input{width:100%}
+  .seg{overflow-x:auto}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><div class="mark" aria-hidden="true">J</div><div><b>JOBI</b><span>Dashboard de leads</span></div></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span class="preview-tag">Vista previa con datos de ejemplo</span>
+      <span class="live"><i></i>En vivo</span>
+    </div>
+  </header>
+
+  <div class="tabrow">
+    <nav class="tabs" role="tablist" aria-label="Secciones">
+      <button role="tab" id="tab-contacts" aria-controls="p-contacts" aria-selected="true" data-tab="contacts">Contactos <span class="count" id="c-contacts"></span></button>
+      <button role="tab" id="tab-linkedin" aria-controls="p-linkedin" aria-selected="false" data-tab="linkedin">LinkedIn <span class="count" id="c-linkedin"></span><span class="count hot" id="c-queue"></span></button>
+      <button role="tab" id="tab-directory" aria-controls="p-directory" aria-selected="false" data-tab="directory">Directorio <span class="count" id="c-directory"></span></button>
+    </nav>
+  </div>
+
+  <!-- CONTACTOS -->
+  <section id="p-contacts" role="tabpanel" aria-labelledby="tab-contacts">
+    <div class="stack">
+      <div class="card">
+        <div class="strip">
+          <h2>Pipeline</h2>
+          <div class="kpis" id="contact-kpis"></div>
+          <button class="linkbtn" aria-expanded="false" aria-controls="pipe-body" data-toggle="pipe-body">Buscar y filtrar <span class="count hot" id="c-active" hidden></span> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        </div>
+        <div class="strip-body" id="pipe-body" hidden>
+          <div class="segbar" id="segbar" aria-label="Contactos por etapa"></div>
+          <p style="margin:10px 0 0;font-size:13px;color:var(--muted)">Toca una etapa para filtrar la tabla por ella.</p>
+        <div class="filters">
+          <div class="field searchbox-field"><label for="c-q">Buscar</label>
+            <div class="searchbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="c-q" class="input" type="search" placeholder="Empresa, puesto, contacto o email"></div></div>
+          <div class="field"><span class="lbl" id="lbl-contactado">Contactado</span><div class="seg" role="group" aria-labelledby="lbl-contactado" id="c-contactado"></div></div>
+          <div class="field"><label for="c-estado">Estado</label><select id="c-estado" class="input"></select></div>
+          <div class="field"><label for="c-email">Email</label><select id="c-email" class="input"><option value="">Todos</option><option value="con">Con email</option><option value="sin">Sin email</option></select></div>
+        </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="resultline" id="c-result"></div>
+        <div class="table">
+          <div class="thead cols-contacts"><span>Empresa</span><span>Puesto</span><span>Contacto</span><span>Estado</span><span class="hide-md">Fecha</span><span></span></div>
+          <div id="c-rows"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LINKEDIN -->
+  <section id="p-linkedin" role="tabpanel" aria-labelledby="tab-linkedin" hidden>
+    <div class="stack">
+      <div class="card queue">
+        <div class="strip">
+          <h2>Cola de aprobación</h2>
+          <div class="kpis"><div class="kpi"><b id="q-count"></b><span>candidatos pendientes</span></div></div>
+          <button class="linkbtn" aria-expanded="false" aria-controls="queue-body" data-toggle="queue-body">Ver detalle <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        </div>
+        <div class="strip-body" id="queue-body" hidden><div id="queue-list"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="strip">
+          <h2>Resumen de LinkedIn</h2>
+          <div class="kpis" id="li-kpis"></div>
+          <button class="linkbtn" aria-expanded="false" aria-controls="li-body" data-toggle="li-body">Buscar y filtrar <span class="count hot" id="l-active" hidden></span> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        </div>
+        <div class="strip-body" id="li-body" hidden>
+        <div class="filters li">
+          <div class="field searchbox-field"><label for="l-q">Buscar</label>
+            <div class="searchbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="l-q" class="input" type="search" placeholder="Autor, empresa o contenido del post"></div></div>
+          <div class="field"><span class="lbl" id="lbl-pub">Publicado</span><div class="seg" role="group" aria-labelledby="lbl-pub" id="l-pub"></div></div>
+          <div class="field"><label for="l-estado">Estado</label><select id="l-estado" class="input"><option value="">Todos los estados</option><option value="draft">Borrador listo</option><option value="publicado">Publicado</option><option value="descartado">Descartado</option></select></div>
+          <div class="field"><label for="l-score">Score</label><select id="l-score" class="input"><option value="0">Todos</option><option value="85">85 o más</option><option value="70">70 o más</option></select></div>
+          <div class="field"><label for="l-from">Desde</label><input id="l-from" class="input" type="date"></div>
+          <div class="field"><label for="l-to">Hasta</label><input id="l-to" class="input" type="date"></div>
+        </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="resultline" id="l-result"></div>
+        <div class="table">
+          <div class="thead cols-li"><span>Autor / Empresa</span><span>Post</span><span>Score</span><span>Estado</span><span class="hide-md">Fecha</span><span></span></div>
+          <div id="l-rows"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DIRECTORIO -->
+  <section id="p-directory" role="tabpanel" aria-labelledby="tab-directory" hidden>
+    <div class="card">
+      <div class="strip"><h2>Directorio</h2><div class="kpis" id="dir-kpis"></div></div>
+      <div class="filters">
+        <div class="field searchbox-field"><label for="d-q">Buscar</label>
+          <div class="searchbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="d-q" class="input" type="search" placeholder="Nombre, empresa, rol o email"></div></div>
+        <div class="field"><span class="lbl" id="lbl-dat">Datos</span><div class="seg" role="group" aria-labelledby="lbl-dat" id="d-data"></div></div>
+        <div class="field"><label for="d-src">Fuente</label><select id="d-src" class="input"><option value="">Todas</option><option>Job posting</option><option>LinkedIn</option><option>Feria</option></select></div>
+        <div class="field"><button class="btn primary" id="d-copy" type="button" style="height:48px">Copiar emails visibles</button></div>
+      </div>
+      <div class="resultline" id="d-result" style="border-top:1px solid var(--line)"></div>
+      <div class="table">
+        <div class="thead cols-dir"><span>Nombre</span><span>Empresa</span><span>Rol</span><span>Email</span><span>LinkedIn</span><span>Encontrado</span></div>
+        <div id="d-rows"></div>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sept','oct','nov','dic'];
+  const fmtDate = (iso, time) => { if (!iso) return ''; const d = new Date(iso); let s = d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); if (time) s += ', ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); return s; };
+  const shortDate = (iso) => { const d = new Date(iso); return d.getDate() + ' ' + MONTHS[d.getMonth()]; };
+  const initials = (n) => n.split(/\s+/).map((p) => p[0]).join('').slice(0,2).toUpperCase();
+  const ICON = {
+    in: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 11v6M8 7.5v.01M12 17v-6M12 13.5a2.5 2.5 0 0 1 5 0V17"/></svg>',
+    chev: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+    copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg>',
+    ext: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
+    send: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></svg>',
+    job: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+    check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>',
+    rss: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 11a8 8 0 0 1 8 8M5 5a14 14 0 0 1 14 14"/><circle cx="6" cy="18" r="1"/></svg>',
+    x: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+  };
+  const STAGES = [
+    {id:'nuevo',label:'Nuevo'},{id:'contacto',label:'Contacto encontrado'},{id:'draft',label:'Borrador listo'},
+    {id:'enviado',label:'Enviado'},{id:'respondio',label:'Respondió'},{id:'descartado',label:'Descartado'}
+  ];
+  const stageLabel = (id) => (STAGES.find((s) => s.id === id) || {}).label || id;
+  const badge = (id, label) => '<span class="badge" style="background:var(--s-'+id+'-bg);color:var(--s-'+id+'-fg)"><i style="background:var(--s-'+id+'-dot)"></i>'+esc(label || stageLabel(id))+'</span>';
+
+  /* ---------- sample data (the Pammys row mirrors the real record) ---------- */
+  const CONTACTS = [
+    { id:'c1', company:'Pammys', legal:'dieseo GmbH', role:'Creative Strategy Manager (m/w/d)', city:'Hamburg', name:'Jana Brey', email:'j.brey@dieseo.de', linkedin:'https://www.linkedin.com/in/janabrey', job:'https://www.linkedin.com/comm/jobs/view/4472041335/', stage:'draft', created:'2026-09-28T17:04:00', sent:null, fu1:null, fu2:null,
+      hypothesis:'La empresa Pammys (dieseo GmbH, e-commerce de calzado en Hamburg, una de las marcas de más rápido crecimiento en Europa) está buscando un Creative Strategy Manager. El post pide desarrollar creative strategies y briefings para Meta, TikTok y YouTube en alemán, gestionar el proceso creativo completo de la idea al acabado, optimizar los procesos entre Performance Marketing, Brand, UGC y Producción, y analizar KPIs como Hook Rate, Hold Rate, CTR, CPA y ROAS. Make Happen puede ayudar con automatización de procesos creativos (briefings, ingesta de KPIs y reportes de tests automáticos) para que el nuevo rol escale el volumen de creativos sin perder el control de los datos.',
+      mh:{ subject:'Creative Strategy Manager: der Prozess zwischen Performance und Produktion', body:'Hallo Frau Brey,\n\nIhre Ausschreibung zum Creative Strategy Manager dreht sich weniger um Ideen als um System: den gesamten Creative-Prozess von der Idee bis zum fertigen Werbemittel steuern, Briefings für UGC-Creator, Videografen und Editoren pflegen, die Schnittstellen zwischen Performance Marketing, Brand, UGC und Produktion aufbauen und KPIs wie Hook Rate, Hold Rate, CTR, CPA und ROAS in Maßnahmen übersetzen.\n\nGenau diese Verbindungsstelle bauen wir: Automatisierungen, die Briefings, KPI-Daten und Test-Ergebnisse zusammenführen, sodass Ihr neuer Strategist Volumen steuert statt Tabellen. Für El Kiosk haben wir den kompletten Social-Content aus einer URL automatisiert, und bei Ihrem Werbevolumen greift das Tag für Tag.\n\nFalls interessant: 15 Minuten reichen, um zu zeigen, was möglich wäre.\n\nGabriel\nMake Happen GmbH' },
+      fl:{ subject:'Creative Strategy Manager: Prozesse, die mit dem Volumen mitgehen', body:'Hallo Frau Brey,\n\nIn Ihrer Ausschreibung zum Creative Strategy Manager geht es um Steuerung: Briefings für UGC-Creator und Editoren, Prozesse zwischen Performance Marketing, Brand, UGC und Produktion sowie KPIs wie Hook Rate, Hold Rate und ROAS.\n\nIch baue als Freelancer genau diese Verbindungen: Automatisierungen, die Briefings, KPIs und Test-Ergebnisse zusammenführen, damit Ihr neuer Strategist Entscheidungen trifft statt Daten zu sammeln. Für El Kiosk habe ich den kompletten Social-Content aus einer URL automatisiert, ein Setup, das bei Ihrem Werbevolumen täglich mitläuft.\n\n15 Minuten für einen Austausch?\n\nGabriel Lagos\nFreelance AI & Automation' },
+      intro:'Hallo Frau Brey, die Suche nach einem Creative Strategy Manager bei Pammys hat mich interessiert. Hook Rate, ROAS und Creative-Prozesse in einen Ablauf zu gießen, ist ein seltenes Profil. Ich arbeite mit Automatisierung für Performance-Teams und würde mich gern verbinden.' },
+    { id:'c2', company:'Nordlicht Foods', legal:'Nordlicht Foods GmbH', role:'Head of Content (m/w/d)', city:'Hamburg', name:'Lena Voss', email:'l.voss@nordlicht-foods.de', linkedin:'https://www.linkedin.com/', job:'https://www.linkedin.com/jobs/', stage:'enviado', created:'2026-09-22T10:12:00', sent:'2026-09-23T09:05:00', fu1:null, fu2:null,
+      hypothesis:'Marca de alimentación en crecimiento que busca a alguien que dirija contenido en cinco canales. El volumen pide un sistema de producción, no solo una persona.',
+      mh:{ subject:'Head of Content: mehr Output ohne mehr Team', body:'Hallo Frau Voss,\n\nIhre Stelle klingt nach fünf Kanälen mit einem Kopf. Wir automatisieren genau den Teil, der dabei Zeit frisst: Briefings, Formate und Freigaben.\n\n15 Minuten für ein Beispiel?\n\nGabriel\nMake Happen GmbH' },
+      fl:{ subject:'Head of Content: Setup für fünf Kanäle', body:'Hallo Frau Voss,\n\nals Freelancer baue ich Content-Setups, die mit dem Volumen wachsen. Passt ein kurzer Austausch?\n\nGabriel Lagos\nFreelance AI & Automation' },
+      intro:'Hallo Frau Voss, Ihre Suche nach einer Head of Content hat mich neugierig gemacht. Ich baue Automatisierung für Content-Teams und würde mich gern verbinden.' },
+    { id:'c3', company:'Kaffeekontor Süd', legal:'Kaffeekontor Süd GmbH', role:'Marketing Automation Manager', city:'München', name:'Felix Brandt', email:'f.brandt@kaffeekontor-sued.de', linkedin:'https://www.linkedin.com/', job:'https://www.linkedin.com/jobs/', stage:'respondio', created:'2026-09-15T08:40:00', sent:'2026-09-16T09:00:00', fu1:'2026-09-21T09:00:00', fu2:null,
+      hypothesis:'Buscan construir automatización de marketing desde cero. Podemos entregar la base (n8n, CRM, reporting) antes de que llegue la contratación.',
+      mh:{ subject:'Marketing Automation: Fundament vor dem ersten Arbeitstag', body:'Hallo Herr Brandt,\n\nwir bauen die Basis, bevor Ihre neue Person startet, damit sie ab Tag eins optimiert statt aufbaut.\n\n15 Minuten?\n\nGabriel\nMake Happen GmbH' },
+      fl:{ subject:'Marketing Automation: schneller Start', body:'Hallo Herr Brandt,\n\nals Freelancer setze ich die Grundlage auf, die Ihre neue Rolle dann weiterführt. Kurzer Austausch?\n\nGabriel Lagos\nFreelance AI & Automation' },
+      intro:'Hallo Herr Brandt, Ihre Suche nach Marketing Automation hat mich interessiert. Ich baue genau solche Setups und würde mich gern verbinden.' },
+    { id:'c4', company:'Fjord Outdoor', legal:'Fjord Outdoor AG', role:'Performance Creative Lead', city:'Berlin', name:'Mara Holm', email:'', linkedin:'https://www.linkedin.com/', job:'https://www.linkedin.com/jobs/', stage:'contacto', created:'2026-09-27T14:20:00', sent:null, fu1:null, fu2:null,
+      hypothesis:'Marca outdoor con fuerte inversión en paid social. Falta el email del contacto; la vía de entrada es la intro por LinkedIn.',
+      mh:null, fl:null,
+      intro:'Hallo Frau Holm, Ihre Suche nach einem Performance Creative Lead bei Fjord hat mich interessiert. Ich automatisiere Creative-Tests für Performance-Teams und würde mich gern verbinden.' },
+    { id:'c5', company:'Brightside Studios', legal:'Brightside Studios GmbH', role:'Senior Art Director', city:'Köln', name:'Tom Reiter', email:'t.reiter@brightside.de', linkedin:'https://www.linkedin.com/', job:'https://www.linkedin.com/jobs/', stage:'descartado', created:'2026-09-12T11:00:00', sent:null, fu1:null, fu2:null,
+      hypothesis:'Agencia creativa; buscan perfil puramente de diseño, sin encaje para automatización.', mh:null, fl:null, intro:'' }
+  ];
+  const EXTRA_DIR = [
+    { name:'Sven Kühl', company:'Hanse Brau', role:'Geschäftsführer', email:'s.kuehl@hansebrau.de', linkedin:'https://www.linkedin.com/', source:'Feria', found:'2026-09-10' },
+    { name:'Nina Albers', company:'Salzwiese Hotels', role:'Marketing Lead', email:'', linkedin:'https://www.linkedin.com/', source:'LinkedIn', found:'2026-09-19' },
+    { name:'Paul Wirth', company:'Grünhof Säfte', role:'Brand Manager', email:'p.wirth@gruenhof.de', linkedin:'', source:'Feria', found:'2026-09-08' }
+  ];
+  const POSTS = [
+    { id:'p1', author:'Clara Benítez', role:'CRO, Salesforge', summary:'Explica por qué sus secuencias de 8 pasos rinden menos que las de 4', full:'Durante un año enviamos secuencias de 8 pasos. Este trimestre las recortamos a 4, con mensajes más específicos y una propuesta clara en el primero. La tasa de respuesta subió del 3,1% al 6,8% y el equipo dedica un 40% menos de tiempo.\n\nLa lección: más toques no compensan menos relevancia. ¿Cuántos pasos tienen vuestras secuencias?', score:92, status:'draft', date:'2026-09-28', src:'Tu feed', url:'https://www.linkedin.com/', comment:'Muy de acuerdo, Clara. En nuestro caso el mayor salto vino de sustituir el primer toque genérico por una hipótesis concreta sobre la cuenta. ¿Probasteis a variar el mensaje según el rol del decisor?' },
+    { id:'p2', author:'Anna Krüger', role:'Head of Marketing, Alpenmilch eG', summary:'Weniger Kampagnen, mehr laufender Content: unser Plan für 2027', full:'Wir haben 2026 sechs große Kampagnen gefahren. Ergebnis: Peaks, dann Stille.\n\nFür 2027 drehen wir es um. Kleinere Budgets, dafür jede Woche Content. Wie macht ihr das mit kleinem Team?', score:88, status:'draft', date:'2026-09-27', src:'Keyword: Content Lebensmittel', url:'https://www.linkedin.com/', comment:'Spannender Schwenk. Die Stille zwischen den Peaks kennen wir von fast jeder Marke. Was kleinen Teams hilft: die Markensprache einmal sauber festhalten, dann wird wöchentlicher Content zur Routine. Welche Formate testet ihr zuerst?' },
+    { id:'p3', author:'Markus Heller', role:'Gründer, Heller Hotels', summary:'Direktbuchungen statt Portale: was bei uns funktioniert hat', full:'Seit März liegt unser Direktbuchungsanteil bei 41 Prozent. Der größte Hebel war nicht die Website, sondern Instagram Stories mit echten Gästen.', score:84, status:'draft', date:'2026-09-26', src:'Tu feed', url:'https://www.linkedin.com/', comment:'Starker Punkt, dass Stories mehr bewegt haben als die Website. Habt ihr dafür feste Formate oder entsteht das spontan im Haus?' },
+    { id:'p4', author:'Weingut Seidl', company:true, role:'Página de empresa', summary:'Lese 2026 abgeschlossen, erste Eindrücke', full:'Die Lese ist durch. Kleine Menge, große Konzentration.', score:71, status:'publicado', date:'2026-09-24', src:'Tu feed', url:'https://www.linkedin.com/', comment:'Glückwunsch zum Abschluss. Kleine Menge, große Konzentration klingt nach einem Jahrgang, den man sich merken sollte.' },
+    { id:'p5', author:'Ben Otto', role:'Inhaber, Otto Kaffee', summary:'Warum wir keine Agentur mehr brauchen', full:'Wir machen alles selbst. Handy, gutes Licht, fertig.', score:63, status:'descartado', date:'2026-09-22', src:'Keyword: Agentur', url:'https://www.linkedin.com/', comment:'' }
+  ];
+  const QUEUE = [
+    { id:'q1', author:'Julia Sommer', role:'CMO, FitNest', summary:'KI-Bilder in Fitness-Ads: unser A/B-Test', full:'Vier Wochen KI-Motive gegen Fotoshootings getestet. Klickrate fast gleich, Kosten ein Bruchteil.', score:86, date:'2026-09-29', src:'Keyword: KI Content', url:'https://www.linkedin.com/', comment:'Danke für die echten Zahlen. KI trägt gut, solange die Marke erkennbar bleibt und ein Mensch drüberschaut. Habt ihr beides gemischt?' },
+    { id:'q2', author:'Clara Weiß', role:'Marketing Lead, Bergbäck', summary:'Saisonale Produkte, saisonaler Content?', full:'Unser Kürbisbrot ist nur sechs Wochen im Regal. Lohnt sich dafür eigener Content?', score:77, date:'2026-09-29', src:'Tu feed', url:'https://www.linkedin.com/', comment:'Gerade weil es nur sechs Wochen gibt, lohnt es sich. Knappheit ist die beste Geschichte.' }
+  ];
+
+  /* ---------- per-viewer overrides (demo only; real state lives in Supabase) ---------- */
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('outreach-demo') || '{}') || {}; } catch (e) { saved = {}; }
+  const persist = () => { try { localStorage.setItem('outreach-demo', JSON.stringify(saved)); } catch (e) {} };
+  (saved.contacts || []).forEach((o) => { const c = CONTACTS.find((x) => x.id === o.id); if (c) Object.assign(c, o); });
+  (saved.posts || []).forEach((o) => { const p = POSTS.find((x) => x.id === o.id); if (p) Object.assign(p, o); });
+  const saveContact = (c) => { saved.contacts = (saved.contacts || []).filter((x) => x.id !== c.id).concat([{ id:c.id, stage:c.stage, sent:c.sent }]); persist(); };
+  const savePost = (p) => { saved.posts = (saved.posts || []).filter((x) => x.id !== p.id).concat([{ id:p.id, status:p.status, comment:p.comment }]); persist(); };
+
+  const toast = (msg) => { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1800); };
+  const copy = (text, msg) => {
+    const done = () => toast(msg || 'Copiado');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+    function fallback(){ const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('No se pudo copiar'); } ta.remove(); }
+  };
+
+  /* ---------- tabs ---------- */
+  document.querySelectorAll('nav.tabs button').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    ['contacts','linkedin','directory'].forEach((t) => { $('#p-' + t).hidden = t !== b.dataset.tab; });
+  }));
+  document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('click', () => {
+    const el = document.getElementById(b.dataset.toggle); el.hidden = !el.hidden; b.setAttribute('aria-expanded', String(!el.hidden));
+  }));
+
+  const segControl = (el, opts, get, set) => {
+    const draw = () => { el.innerHTML = opts().map((o) => '<button type="button" aria-pressed="'+(get() === o.v)+'" data-v="'+o.v+'">'+esc(o.label)+(o.n != null ? ' <small>'+o.n+'</small>' : '')+'</button>').join(''); };
+    el.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; set(b.dataset.v); });
+    return draw;
+  };
+
+  /* ================= CONTACTOS ================= */
+  const cf = { q:'', contactado:'todos', estado:'', email:'' };
+  let openContact = 'c1';
+  const isSent = (c) => !!c.sent;
+  $('#c-estado').innerHTML = '<option value="">Todos los estados</option>' + STAGES.map((s) => '<option value="'+s.id+'">'+s.label+'</option>').join('');
+  const drawContactado = segControl($('#c-contactado'), () => [
+    {v:'todos',label:'Todos',n:CONTACTS.length},{v:'si',label:'Sí',n:CONTACTS.filter(isSent).length},{v:'no',label:'No',n:CONTACTS.filter((c) => !isSent(c)).length}
+  ], () => cf.contactado, (v) => { cf.contactado = v; renderContacts(); });
+  $('#c-q').addEventListener('input', (e) => { cf.q = e.target.value.toLowerCase(); renderContacts(); });
+  $('#c-estado').addEventListener('change', (e) => { cf.estado = e.target.value; renderContacts(); });
+  $('#c-email').addEventListener('change', (e) => { cf.email = e.target.value; renderContacts(); });
+
+  const mailto = (c) => 'mailto:' + encodeURIComponent(c.email) + '?cc=' + encodeURIComponent('gabriel@makehappen.de') + '&subject=' + encodeURIComponent('Re: ' + c.role + ', ' + c.city + ' at ' + c.company) + (c.mh ? '&body=' + encodeURIComponent(c.mh.body) : '');
+  const tl = (label, iso) => '<div><span>'+label+'</span>'+(iso ? '<b>'+fmtDate(iso, true)+'</b>' : '<b class="pending">Pendiente</b>')+'</div>';
+  const draftBlock = (title, tag, d, act) => d ? '<div class="draft"><h4 class="eyebrow" style="display:flex;justify-content:space-between;gap:8px">'+title+'<span style="letter-spacing:0;text-transform:none">'+tag+'</span></h4><div class="subj"><span>Betreff: </span><b>'+esc(d.subject)+'</b></div><pre>'+esc(d.body)+'</pre><button type="button" class="minibtn" data-act="'+act+'">'+ICON.copy+'Copiar</button></div>' : '';
+
+  function contactDetail(c){
+    const hasDrafts = c.mh || c.fl;
+    return '<div class="detail"><div class="dcard">' +
+      '<div class="dsec"><h4>Hipótesis</h4><p class="hyp">'+esc(c.hypothesis)+'</p></div>' +
+      (hasDrafts ? '<div class="dsec"><h4>Borradores de email</h4><div class="drafts">' + draftBlock('Email draft, Make Happen','Empresa',c.mh,'copy-mh') + draftBlock('Email draft, Gabriel freelancer','Freelance',c.fl,'copy-fl') + '</div></div>'
+        : '<div class="dsec"><h4>Borradores de email</h4><p class="hyp" style="color:var(--muted)">'+(c.email ? 'Todavía no hay borrador para este contacto.' : 'Sin email encontrado, así que no hay borrador. Usa la intro de LinkedIn para abrir conversación.')+'</p></div>') +
+      (c.intro ? '<div class="dsec"><h4>LinkedIn intro<span class="tag">'+c.intro.length+' de 300 caracteres</span></h4><div class="draft"><pre>'+esc(c.intro)+'</pre><button type="button" class="minibtn" data-act="copy-intro">'+ICON.copy+'Copiar</button></div></div>' : '') +
+      '<div class="timeline">'+tl('Creado',c.created)+tl('Enviado',c.sent)+tl('Follow-up 1',c.fu1)+tl('Follow-up 2',c.fu2)+'</div>' +
+      '<div class="actions">' +
+        (c.job ? '<a class="btn" href="'+esc(c.job)+'" target="_blank" rel="noopener">'+ICON.job+'Ver oferta</a>' : '') +
+        (c.email ? '<a class="btn primary" href="'+esc(mailto(c))+'">'+ICON.send+'Enviar email</a>' : '<button class="btn" disabled>'+ICON.send+'Enviar email</button>') +
+        (c.linkedin ? '<a class="btn" href="'+esc(c.linkedin)+'" target="_blank" rel="noopener">'+ICON.in+'Mensaje en LinkedIn</a>' : '') +
+      '</div>' +
+      '<div class="statusbar"><span>Actualizar estado</span>' +
+        '<button type="button" class="btn good" data-act="sent"'+(c.sent ? ' disabled' : '')+'>'+ICON.send+(c.sent ? 'Enviado' : 'Marcar como enviado')+'</button>' +
+        '<button type="button" class="btn good" data-act="responded"'+(c.stage === 'respondio' ? ' disabled' : '')+'>'+ICON.check+'Respondió</button>' +
+        '<button type="button" class="btn bad" data-act="discard"'+(c.stage === 'descartado' ? ' disabled' : '')+'>'+ICON.x+'Descartar</button>' +
+      '</div></div></div>';
+  }
+
+  function renderContacts(){
+    drawContactado();
+    const total = CONTACTS.length, sent = CONTACTS.filter(isSent).length, resp = CONTACTS.filter((c) => c.stage === 'respondio').length;
+    $('#contact-kpis').innerHTML = [[total,'contactos'],[CONTACTS.filter((c)=>c.stage==='draft').length,'con borrador listo'],[sent,'contactados'],[resp,'respuestas']].map((k) => '<div class="kpi"><b>'+k[0]+'</b><span>'+k[1]+'</span></div>').join('');
+    $('#segbar').innerHTML = STAGES.map((s) => { const n = CONTACTS.filter((c) => c.stage === s.id).length; return '<button type="button" data-stage="'+s.id+'" style="flex-grow:'+Math.max(n,0.4)+';background:var(--s-'+s.id+'-bg);color:var(--s-'+s.id+'-fg)" title="'+s.label+': '+n+'">'+esc(s.label)+' '+n+'</button>'; }).join('');
+    const rows = CONTACTS.filter((c) => {
+      if (cf.contactado === 'si' && !isSent(c)) return false;
+      if (cf.contactado === 'no' && isSent(c)) return false;
+      if (cf.estado && c.stage !== cf.estado) return false;
+      if (cf.email === 'con' && !c.email) return false;
+      if (cf.email === 'sin' && c.email) return false;
+      if (cf.q && !(c.company+' '+c.legal+' '+c.role+' '+c.name+' '+c.email+' '+c.city).toLowerCase().includes(cf.q)) return false;
+      return true;
+    }).sort((a,b) => b.created.localeCompare(a.created));
+    const ca = [cf.q, cf.contactado !== 'todos', cf.estado, cf.email].filter(Boolean).length; $('#c-active').textContent = ca; $('#c-active').hidden = !ca;
+    $('#c-result').innerHTML = '<b>'+rows.length+'</b> de '+total+' contactos';
+    $('#c-contacts').textContent = total;
+    $('#c-rows').innerHTML = rows.length ? rows.map((c) => {
+      const open = openContact === c.id;
+      return '<div class="row'+(open?' open':'')+'" data-id="'+c.id+'"><div class="row-main cols-contacts" data-rowtoggle>' +
+        '<div class="keep-sm" style="min-width:0"><div class="cell-strong">'+esc(c.company)+'</div><div class="cell-sub">'+esc(c.legal)+'</div></div>' +
+        '<div class="keep-sm" style="min-width:0"><div class="clamp" style="font-weight:500;line-height:1.35">'+esc(c.role)+'</div><div class="cell-sub">'+esc(c.city)+'</div></div>' +
+        '<div class="person keep-sm"><div class="av">'+initials(c.name)+'</div><div style="min-width:0"><div class="cell-strong">'+esc(c.name)+'</div>'+(c.email ? '<div class="cell-sub">'+esc(c.email)+'</div>' : '<div class="noemail">Sin email</div>')+'</div>'+(c.linkedin ? '<a class="inbtn" href="'+esc(c.linkedin)+'" target="_blank" rel="noopener" aria-label="LinkedIn de '+esc(c.name)+'" data-stop>'+ICON.in+'</a>' : '')+'</div>' +
+        '<div class="keep-sm">'+badge(c.stage)+'</div>' +
+        '<div class="hide-sm hide-md" style="font-size:var(--fs-sm);color:var(--muted)">'+shortDate(c.created)+'</div>' +
+        '<div class="chev-cell"><button type="button" class="chev plain" aria-expanded="'+open+'" aria-label="Ver detalle de '+esc(c.company)+'">'+ICON.chev+'</button></div>' +
+        '</div>' + (open ? contactDetail(c) : '') + '</div>';
+    }).join('') : '<div class="empty"><b>Ningún contacto con estos filtros</b><span>Quita un filtro o borra la búsqueda.</span><button class="btn primary" type="button" data-reset>Borrar filtros</button></div>';
+    renderDirectory();
+  }
+  $('#segbar').addEventListener('click', (e) => { const b = e.target.closest('[data-stage]'); if (!b) return; cf.estado = cf.estado === b.dataset.stage ? '' : b.dataset.stage; $('#c-estado').value = cf.estado; renderContacts(); });
+  $('#c-rows').addEventListener('click', (e) => {
+    if (e.target.closest('[data-reset]')) { Object.assign(cf,{q:'',contactado:'todos',estado:'',email:''}); $('#c-q').value=''; $('#c-estado').value=''; $('#c-email').value=''; renderContacts(); return; }
+    const row = e.target.closest('.row'); if (!row) return;
+    const c = CONTACTS.find((x) => x.id === row.dataset.id);
+    const act = e.target.closest('[data-act]');
+    if (act) {
+      const a = act.dataset.act;
+      if (a === 'copy-mh') copy('Betreff: '+c.mh.subject+'\n\n'+c.mh.body, 'Email Make Happen copiado');
+      if (a === 'copy-fl') copy('Betreff: '+c.fl.subject+'\n\n'+c.fl.body, 'Email freelancer copiado');
+      if (a === 'copy-intro') copy(c.intro, 'Intro de LinkedIn copiada');
+      if (a === 'sent') { c.sent = new Date().toISOString(); c.stage = 'enviado'; saveContact(c); renderContacts(); toast('Marcado como enviado'); }
+      if (a === 'responded') { if (!c.sent) c.sent = new Date().toISOString(); c.stage = 'respondio'; saveContact(c); renderContacts(); toast('Marcado como respondido'); }
+      if (a === 'discard') { c.stage = 'descartado'; saveContact(c); renderContacts(); toast('Contacto descartado'); }
+      return;
+    }
+    if (e.target.closest('[data-stop]') || e.target.closest('a')) return;
+    if (e.target.closest('[data-rowtoggle]')) { openContact = openContact === c.id ? null : c.id; renderContacts(); }
+  });
+
+  /* ================= LINKEDIN ================= */
+  const lf = { q:'', pub:'todos', estado:'', score:0, from:'', to:'' };
+  let openPost = 'p1';
+  const liStatus = { draft:{label:'Borrador listo',v:'draft'}, publicado:{label:'Publicado',v:'enviado'}, descartado:{label:'Descartado',v:'descartado'} };
+  const liBadge = (st) => badge(liStatus[st].v, liStatus[st].label);
+  const drawPub = segControl($('#l-pub'), () => [
+    {v:'todos',label:'Todos',n:POSTS.length},{v:'si',label:'Sí',n:POSTS.filter((p)=>p.status==='publicado').length},{v:'no',label:'No',n:POSTS.filter((p)=>p.status!=='publicado').length}
+  ], () => lf.pub, (v) => { lf.pub = v; renderLinkedIn(); });
+  $('#l-q').addEventListener('input', (e) => { lf.q = e.target.value.toLowerCase(); renderLinkedIn(); });
+  $('#l-estado').addEventListener('change', (e) => { lf.estado = e.target.value; renderLinkedIn(); });
+  $('#l-score').addEventListener('change', (e) => { lf.score = Number(e.target.value); renderLinkedIn(); });
+  $('#l-from').addEventListener('change', (e) => { lf.from = e.target.value; renderLinkedIn(); });
+  $('#l-to').addEventListener('change', (e) => { lf.to = e.target.value; renderLinkedIn(); });
+  const scoreColor = (s) => s >= 85 ? '#3E9A6A' : s >= 70 ? 'var(--accent)' : 'var(--s-nuevo-dot)';
+
+  function renderQueue(){
+    $('#q-count').textContent = QUEUE.length;
+    $('#c-queue').textContent = QUEUE.length;
+    $('#c-queue').hidden = QUEUE.length === 0;
+    $('#queue-list').innerHTML = QUEUE.length ? QUEUE.map((q) =>
+      '<div class="qitem" data-q="'+q.id+'"><div class="person"><div class="av">'+initials(q.author)+'</div><div style="min-width:0"><div class="cell-strong">'+esc(q.author)+'</div><div class="cell-sub">'+esc(q.role)+'</div></div></div>' +
+      '<div class="clamp">'+esc(q.summary)+'</div><div class="score"><b>'+q.score+'</b></div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn primary" data-approve>'+ICON.check+'Aprobar</button><button type="button" class="btn bad" data-reject>'+ICON.x+'Rechazar</button></div></div>'
+    ).join('') : '<p style="margin:0;color:var(--muted)">No hay candidatos pendientes. El próximo lote llega con el cron diario.</p>';
+  }
+  $('#queue-list').addEventListener('click', (e) => {
+    const item = e.target.closest('[data-q]'); if (!item) return;
+    const i = QUEUE.findIndex((q) => q.id === item.dataset.q); if (i < 0) return;
+    if (e.target.closest('[data-approve]')) { const q = QUEUE.splice(i,1)[0]; POSTS.unshift(Object.assign({}, q, { status:'draft' })); openPost = q.id; toast('Aprobado, ya está en la lista'); }
+    else if (e.target.closest('[data-reject]')) { QUEUE.splice(i,1); toast('Candidato rechazado'); }
+    else return;
+    renderQueue(); renderLinkedIn();
+  });
+
+  function renderLinkedIn(){
+    drawPub();
+    const pub = POSTS.filter((p)=>p.status==='publicado').length;
+    const avg = POSTS.length ? Math.round(POSTS.reduce((a,p)=>a+p.score,0)/POSTS.length) : 0;
+    $('#li-kpis').innerHTML = [[POSTS.length,'posts'],[POSTS.filter((p)=>p.status==='draft').length,'con borrador listo'],[pub,'publicados'],[avg,'score medio']].map((k) => '<div class="kpi"><b>'+k[0]+'</b><span>'+k[1]+'</span></div>').join('');
+    $('#c-linkedin').textContent = POSTS.length;
+    const rows = POSTS.filter((p) => {
+      if (lf.pub === 'si' && p.status !== 'publicado') return false;
+      if (lf.pub === 'no' && p.status === 'publicado') return false;
+      if (lf.estado && p.status !== lf.estado) return false;
+      if (p.score < lf.score) return false;
+      if (lf.from && p.date < lf.from) return false;
+      if (lf.to && p.date > lf.to) return false;
+      if (lf.q && !(p.author+' '+p.role+' '+p.summary+' '+p.full).toLowerCase().includes(lf.q)) return false;
+      return true;
+    }).sort((a,b) => b.date.localeCompare(a.date));
+    const la = [lf.q, lf.pub !== 'todos', lf.estado, lf.score, lf.from, lf.to].filter(Boolean).length; $('#l-active').textContent = la; $('#l-active').hidden = !la;
+    $('#l-result').innerHTML = '<b>'+rows.length+'</b> de '+POSTS.length+' posts';
+    $('#l-rows').innerHTML = rows.length ? rows.map((p) => {
+      const open = openPost === p.id;
+      const role = esc(p.role).replace(', ', ' · ');
+      return '<div class="row li'+(open?' open':'')+'" data-id="'+p.id+'"><div class="row-main cols-li" data-rowtoggle>' +
+        '<div class="person keep-sm"><div class="av'+(p.company?' co':'')+'">'+initials(p.author)+'</div><div style="min-width:0"><div class="cell-strong">'+esc(p.author)+'</div><div class="cell-sub">'+role+'</div></div></div>' +
+        '<div class="keep-sm clamp" style="color:var(--ink-2);line-height:1.45">'+esc(p.summary)+'</div>' +
+        '<div class="score hide-sm"><b>'+p.score+'</b><div class="meter"><i style="width:'+p.score+'%;background:'+scoreColor(p.score)+'"></i></div></div>' +
+        '<div class="keep-sm"><span class="pill pill--'+p.status+'"><i></i>'+liStatus[p.status].label+'</span></div>' +
+        '<div class="hide-sm hide-md" style="font-size:var(--fs-sm);color:var(--muted)">'+shortDate(p.date)+'</div>' +
+        '<div class="chev-cell"><button type="button" class="chev plain" aria-expanded="'+open+'" aria-label="Ver post de '+esc(p.author)+'">'+ICON.chev+'</button></div></div>' +
+        (open ? '<div class="li-detail">' +
+          '<div class="li-col"><h4 class="eyebrow">Post completo</h4><p class="li-post">'+esc(p.full)+'</p>' +
+            '<div class="li-meta"><a href="'+esc(p.url)+'" target="_blank" rel="noopener">'+ICON.ext+'Ver en LinkedIn</a><span>'+ICON.rss+esc(p.src)+'</span><span>Score '+p.score+'</span></div></div>' +
+          '<div class="li-col"><label class="eyebrow" for="cm-'+p.id+'">Nuestro borrador de comentario</label><textarea id="cm-'+p.id+'" data-comment>'+esc(p.comment)+'</textarea><p class="li-meta" style="margin:0;display:block;line-height:1.4"><span data-chars>'+p.comment.length+'</span> caracteres. Se guarda al salir del campo.</p></div>' +
+          '<div class="li-col act"><h4 class="eyebrow">Acciones</h4><div class="li-actions">' +
+            '<button type="button" class="btn" data-act="copy">'+ICON.copy+'Copiar comentario</button>' +
+            '<a class="btn" href="'+esc(p.url)+'" target="_blank" rel="noopener">'+ICON.ext+'Abrir post</a>' +
+            '<button type="button" class="btn primary" data-act="pub"'+(p.status==='publicado'?' disabled':'')+'>'+ICON.check+(p.status==='publicado'?'Publicado':'Marcar publicado')+'</button>' +
+            '<button type="button" class="btn bad" data-act="discard"'+(p.status==='descartado'?' disabled':'')+'>'+ICON.x+'Descartar</button></div></div>' +
+        '</div>' : '') + '</div>';
+    }).join('') : '<div class="empty"><b>No hay posts con estos filtros</b><span>Cambia el score o las fechas, o aprueba candidatos de la cola.</span></div>';
+  }
+  $('#l-rows').addEventListener('input', (e) => { if (!e.target.matches('[data-comment]')) return; const c = e.target.closest('.row').querySelector('[data-chars]'); if (c) c.textContent = e.target.value.length; });
+  $('#l-rows').addEventListener('focusout', (e) => { if (!e.target.matches('[data-comment]')) return; const p = POSTS.find((x) => x.id === e.target.closest('.row').dataset.id); p.comment = e.target.value; savePost(p); toast('Comentario guardado'); });
+  $('#l-rows').addEventListener('click', (e) => {
+    const row = e.target.closest('.row'); if (!row) return;
+    const p = POSTS.find((x) => x.id === row.dataset.id);
+    const act = e.target.closest('[data-act]');
+    if (act) {
+      const ta = row.querySelector('[data-comment]'); if (ta) p.comment = ta.value;
+      if (act.dataset.act === 'copy') copy(p.comment, 'Comentario copiado');
+      if (act.dataset.act === 'pub') { p.status = 'publicado'; savePost(p); renderLinkedIn(); toast('Marcado como publicado'); }
+      if (act.dataset.act === 'discard') { p.status = 'descartado'; savePost(p); renderLinkedIn(); toast('Post descartado'); }
+      return;
+    }
+    if (e.target.closest('a,textarea')) return;
+    if (e.target.closest('[data-rowtoggle]')) { openPost = openPost === p.id ? null : p.id; renderLinkedIn(); }
+  });
+
+  /* ================= DIRECTORIO ================= */
+  const df = { q:'', data:'todos', src:'' };
+  const directory = () => CONTACTS.map((c) => ({ name:c.name, company:c.company, role:c.role, email:c.email, linkedin:c.linkedin, source:'Job posting', found:c.created.slice(0,10) }))
+    .concat(EXTRA_DIR).sort((a,b) => b.found.localeCompare(a.found));
+  const drawData = segControl($('#d-data'), () => { const all = directory(); return [
+    {v:'todos',label:'Todos',n:all.length},{v:'email',label:'Con email',n:all.filter((d)=>d.email).length},{v:'li',label:'Con LinkedIn',n:all.filter((d)=>d.linkedin).length}
+  ]; }, () => df.data, (v) => { df.data = v; renderDirectory(); });
+  $('#d-q').addEventListener('input', (e) => { df.q = e.target.value.toLowerCase(); renderDirectory(); });
+  $('#d-src').addEventListener('change', (e) => { df.src = e.target.value; renderDirectory(); });
+  let dirVisible = [];
+  function renderDirectory(){
+    drawData();
+    const all = directory();
+    $('#c-directory').textContent = all.length;
+    dirVisible = all.filter((d) => {
+      if (df.data === 'email' && !d.email) return false;
+      if (df.data === 'li' && !d.linkedin) return false;
+      if (df.src && d.source !== df.src) return false;
+      if (df.q && !(d.name+' '+d.company+' '+d.role+' '+d.email).toLowerCase().includes(df.q)) return false;
+      return true;
+    });
+    $('#dir-kpis').innerHTML = [[all.length,'personas'],[all.filter((d)=>d.email).length,'con email'],[all.filter((d)=>d.linkedin).length,'con LinkedIn']].map((k) => '<div class="kpi"><b>'+k[0]+'</b><span>'+k[1]+'</span></div>').join('');
+    $('#d-result').innerHTML = '<b>'+dirVisible.length+'</b> de '+all.length+' personas encontradas';
+    $('#d-rows').innerHTML = dirVisible.length ? dirVisible.map((d) =>
+      '<div class="row"><div class="row-main cols-dir dir" style="cursor:default">' +
+      '<div class="person"><div class="av">'+initials(d.name)+'</div><div class="cell-strong">'+esc(d.name)+'</div></div>' +
+      '<div class="cell-strong" style="font-weight:600">'+esc(d.company)+'</div>' +
+      '<div class="cell-sub" style="color:var(--ink-2);font-size:14px">'+esc(d.role)+'</div>' +
+      '<div style="min-width:0">'+(d.email ? '<button type="button" class="linkbtn" data-email="'+esc(d.email)+'" style="min-height:36px;padding:0;color:var(--accent-ink);justify-self:start;max-width:100%" aria-label="Copiar '+esc(d.email)+'">'+ICON.copy+'<span class="cell-sub" style="color:inherit;font-size:14px">'+esc(d.email)+'</span></button>' : '<span class="noemail">Sin email</span>')+'</div>' +
+      '<div>'+(d.linkedin ? '<a class="btn" style="height:38px;padding:0 12px" href="'+esc(d.linkedin)+'" target="_blank" rel="noopener">'+ICON.in+'Perfil</a>' : '<span class="cell-sub">Sin perfil</span>')+'</div>' +
+      '<div style="font-size:14px;color:var(--ink-2)">'+shortDate(d.found)+'<div class="cell-sub">'+esc(d.source)+'</div></div>' +
+      '</div></div>'
+    ).join('') : '<div class="empty"><b>Nadie coincide con la búsqueda</b><span>Prueba con otro nombre o quita el filtro de datos.</span></div>';
+  }
+  $('#d-rows').addEventListener('click', (e) => { const b = e.target.closest('[data-email]'); if (b) copy(b.dataset.email, 'Email copiado'); });
+  $('#d-copy').addEventListener('click', () => { const emails = dirVisible.map((d) => d.email).filter(Boolean); if (!emails.length) { toast('No hay emails en esta vista'); return; } copy(emails.join('\n'), emails.length + ' emails copiados'); });
+
+  renderContacts(); renderQueue(); renderLinkedIn();
+})();
+</script>
+</body>
+</html>
