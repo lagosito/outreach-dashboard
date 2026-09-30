@@ -31,7 +31,7 @@ export function Header({
           height={40}
         />
         <div>
-          <span>Dashboard de leads</span>
+          <span>Your AI Outreach Agent.</span>
         </div>
       </div>
       <div className="head-right">
