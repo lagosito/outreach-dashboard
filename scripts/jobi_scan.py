@@ -216,7 +216,7 @@ def parse_feed_dump(path, errors):
         role_parts = []
         for ln in lines[1:t_idx]:
             s = ln.strip()
-            if not s or DEGREE_RE.search(s) or s in ("Follow", "Promoted") or s == author:
+            if not s or DEGREE_RE.search(s) or JUNK_RE.search(s) or s in ("Follow", "Promoted") or s == author:
                 continue
             role_parts.append(s)
         m = TIME_RE.match(lines[t_idx])
