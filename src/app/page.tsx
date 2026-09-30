@@ -137,9 +137,6 @@ function Dashboard() {
               onClick={() => setTab("linkedin")}
             >
               Post <span className="count">{liCounts.posts + liCounts.queue}</span>
-              {liCounts.queue > 0 ? (
-                <span className="count hot">{liCounts.queue}</span>
-              ) : null}
             </button>
             <button
               role="tab"

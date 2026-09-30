@@ -34,7 +34,7 @@ Para cada post, devuelve un objeto con:
 - "score" (0-100): oportunidad real de aportar valor a la conversacion. Alto = el post trata temas donde Gabriel tiene experiencia genuina (Generative Engine Optimization / AI visibility / SEO, KI-Marketing-automation, contenido, growth, agencias B2B, hiring de creativos/tech en DACH) Y hay hueco para un comentario sustantivo. Bajo = spam, promotion pura, off-topic, ya con 50+ comentarios de respuesta, o conversacion cerrada.
 - "is_relevant": true solo si score >= 70.
 - "reason": una linea en espanol (max 120 caracteres).
-- "comment_draft": si is_relevant, borrador de comentario (matchea el idioma del post: aleman con aleman, ingles con ingles). Reglas duras: 1) empieza con valor concreto real (dato, matiz, experiencia), 2) nunca suena a marketing, 3) menciona GEO-Check / El Kiosk SOLO si encaja de forma natural y casi nunca (max 1 de cada 5 borradores), 4) sin em dash ni en dash, 5) 150-350 caracteres, 6) termina con una pregunta corta o un punto fuerte.
+- "comment_draft": si is_relevant, borrador de comentario (matchea el idioma del post: aleman con aleman, ingles con ingles). Reglas duras: 1) empieza con valor concreto real (dato, matiz, experiencia), 2) nunca suena a marketing, 3) menciona GEO-Check / El Kiosk SOLO si encaja de forma natural y casi nunca (max 1 de cada 5 borradores), 4) sin em dash ni en dash, 5) 150-350 caracteres, 6) termina con una pregunta corta o un punto fuerte, 7) el borrador va EXACTAMENTE en el mismo idioma del post.
 Devuelve SOLO un array JSON con EXACTAMENTE un objeto por post, en el mismo orden de entrada, y en cada objeto incluye "url" con la URL tal cual la recibiste. Sin markdown."""
 
 
