@@ -126,7 +126,7 @@ function Dashboard() {
               data-tab="contacts"
               onClick={() => setTab("contacts")}
             >
-              Contactos <span className="count">{activeContacts}</span>
+              Ofertas <span className="count">{activeContacts}</span>
             </button>
             <button
               role="tab"
@@ -136,7 +136,7 @@ function Dashboard() {
               data-tab="linkedin"
               onClick={() => setTab("linkedin")}
             >
-              LinkedIn <span className="count">{liCounts.posts}</span>
+              Post <span className="count">{liCounts.posts}</span>
               {liCounts.queue > 0 ? (
                 <span className="count hot">{liCounts.queue}</span>
               ) : null}
