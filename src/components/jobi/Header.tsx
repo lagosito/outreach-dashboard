@@ -15,11 +15,22 @@ export function Header({
   return (
     <header className="top">
       <div className="brand">
-        <div className="mark" aria-hidden="true">
-          J
-        </div>
+        <img
+          className="brand-logo"
+          src="/jobi-logo.svg"
+          alt="JOBI"
+          width={130}
+          height={40}
+        />
+        <img
+          className="brand-logo brand-logo-dark"
+          src="/jobi-logo-dark.svg"
+          alt=""
+          aria-hidden="true"
+          width={130}
+          height={40}
+        />
         <div>
-          <b>JOBI</b>
           <span>Dashboard de leads</span>
         </div>
       </div>
