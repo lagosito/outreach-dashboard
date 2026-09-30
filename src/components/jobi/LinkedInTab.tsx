@@ -18,6 +18,7 @@ import { SearchField, SegControl, SelectField, StripCard } from "./fields";
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "Todos los estados" },
+  { value: "pending_approval", label: "Pendiente" },
   { value: "draft_ready", label: "Borrador listo" },
   { value: "published", label: "Publicado" },
   { value: "discarded", label: "Descartado" },
@@ -88,7 +89,7 @@ export function LinkedInTab({
     load();
   }, [load, refreshKey]);
 
-  const demo = !failed && counts.posts === 0;
+  const demo = !failed && counts.posts === 0 && counts.queue === 0;
 
   const sourceRows: Row[] = useMemo(() => {
     const base: Row[] = demo
@@ -96,9 +97,12 @@ export function LinkedInTab({
           ...row,
           ...(overrides[row.id] || {}),
         }))
-      : rows.map((row) => ({ ...row, ...(overrides[row.id] || {}) }));
+      : [
+          ...queue.map((row) => ({ ...row, ...(overrides[row.id] || {}) })),
+          ...rows.map((row) => ({ ...row, ...(overrides[row.id] || {}) })),
+        ];
     return base;
-  }, [demo, rows, overrides]);
+  }, [demo, rows, queue, overrides]);
 
   const visibleRows = useMemo(
     () =>
@@ -214,7 +218,7 @@ export function LinkedInTab({
       <StripCard
         title="Resumen de LinkedIn"
         kpis={[
-          { value: counts.posts, label: "posts" },
+          { value: counts.posts + counts.queue, label: "posts" },
           { value: counts.draft_ready, label: "con borrador listo" },
           { value: counts.published, label: "publicados" },
           { value: counts.avg_score, label: "score medio" },
@@ -239,9 +243,9 @@ export function LinkedInTab({
             value={pub}
             onChange={setPub}
             options={[
-              { value: "todos", label: "Todos", count: counts.posts },
+              { value: "todos", label: "Todos", count: counts.posts + counts.queue },
               { value: "si", label: "Sí", count: counts.published },
-              { value: "no", label: "No", count: counts.posts - counts.published },
+              { value: "no", label: "No", count: counts.posts + counts.queue - counts.published },
             ]}
           />
           <SelectField
@@ -298,7 +302,7 @@ export function LinkedInTab({
             </>
           ) : (
             <>
-              <b>{visibleRows.length}</b> de {counts.posts} posts
+              <b>{visibleRows.length}</b> de {counts.posts + counts.queue} posts
             </>
           )}
         </div>
@@ -466,28 +470,55 @@ export function LinkedInTab({
                             Abrir post
                           </a>
                         ) : null}
-                        <button
-                          type="button"
-                          className="btn primary"
-                          disabled={row.status === "published"}
-                          onClick={() =>
-                            patchRow(row.id, { status: "published" }, "Marcado como publicado")
-                          }
-                        >
-                          <Check size={16} />
-                          {row.status === "published" ? "Publicado" : "Marcar publicado"}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn bad"
-                          disabled={row.status === "discarded"}
-                          onClick={() =>
-                            patchRow(row.id, { status: "discarded" }, "Post descartado")
-                          }
-                        >
-                          <X size={16} />
-                          Descartar
-                        </button>
+                        {row.status === "pending_approval" ? (
+                          <>
+                            <button
+                              type="button"
+                              className="btn primary"
+                              onClick={() =>
+                                patchRow(row.id, { status: "draft_ready" }, "Aprobado, ya está en la lista")
+                              }
+                            >
+                              <Check size={16} />
+                              Aprobar
+                            </button>
+                            <button
+                              type="button"
+                              className="btn bad"
+                              onClick={() =>
+                                patchRow(row.id, { status: "discarded" }, "Candidato rechazado")
+                              }
+                            >
+                              <X size={16} />
+                              Rechazar
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="btn primary"
+                              disabled={row.status === "published"}
+                              onClick={() =>
+                                patchRow(row.id, { status: "published" }, "Marcado como publicado")
+                              }
+                            >
+                              <Check size={16} />
+                              {row.status === "published" ? "Publicado" : "Marcar publicado"}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn bad"
+                              disabled={row.status === "discarded"}
+                              onClick={() =>
+                                patchRow(row.id, { status: "discarded" }, "Post descartado")
+                              }
+                            >
+                              <X size={16} />
+                              Descartar
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

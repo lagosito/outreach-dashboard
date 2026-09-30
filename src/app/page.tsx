@@ -114,7 +114,7 @@ function Dashboard() {
   return (
     <div className="min-h-screen">
       <div className="wrap">
-        <Header demo={liCounts.posts === 0} onRefresh={refresh} />
+        <Header demo={liCounts.posts === 0 && liCounts.queue === 0} onRefresh={refresh} />
 
         <div className="tabrow">
           <nav className="tabs" role="tablist" aria-label="Secciones">
@@ -136,7 +136,7 @@ function Dashboard() {
               data-tab="linkedin"
               onClick={() => setTab("linkedin")}
             >
-              Post <span className="count">{liCounts.posts}</span>
+              Post <span className="count">{liCounts.posts + liCounts.queue}</span>
               {liCounts.queue > 0 ? (
                 <span className="count hot">{liCounts.queue}</span>
               ) : null}
