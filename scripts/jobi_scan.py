@@ -59,6 +59,8 @@ def detect_lang(text):
     return "unknown"
 
 
+TOPIC_RE = re.compile(r"chatgpt|\bki\b|\bai\b|\bllm\b|geo|generative|perplexity|gemini|ai overviews|sichtbarkeit|visibility|content|automatisierung|automation", re.I)
+HIRE_RE = re.compile(r"\(m/w/d\)|\(d/m/w\)|\(w/m/d\)|wir suchen|hiring|stelle", re.I)
 DASH_RE = re.compile(r"[\u2014\u2013]")
 MENTION_RE = re.compile(r"GEO-Check|El Kiosk|elkiosk", re.I)
 
@@ -181,7 +183,8 @@ JSON-Objekt pro Post:
   "register": "du" | "sie" | "neutral",
   "score": 0-100,
   "angle": "buyer" | "expert" | "hiring_candidate" | "hiring_partner" | "none",
-  "reason": "max 1 Satz"
+  "reason": "max 1 Satz",
+  "evidence": "wortwörtliches Zitat aus dem Post (copy-paste, unverändert, ohne ..."
 }
 
 Regeln:
@@ -196,6 +199,19 @@ Score f\u00fcr "conversation":
 + Post hat Diskussion (Fragen, Meinungen), nicht nur Ank\u00fcndigung
 - Autor ist Agentur/Berater mit gleichem Angebot (max 60, au\u00dfer starkes Expert-Thema)
 - Reine Werbung, Event-Ank\u00fcndigung, Jobwechsel-Gl\u00fcckw\u00fcnsche: post_type "other"
+
+Evidenzpflicht:
+- "evidence" MUSS ein wortwörtliches Zitat aus dem Post sein (exaktes copy-paste,
+  ohne Änderungen, ohne Auslassungspunkte, ohne Übersetzung).
+- Wenn der Post sich NICHT explizit mit KI-Sichtbarkeit, Content, KI im Marketing,
+  Automatisierung oder einer passenden Stellenanzeige beschäftigt: score höchstens 40.
+- Generischer Verkauf, Recht/Daten, Energie, Finanzen, Motivation:
+  post_type "other" (Score egal).
+
+Negative Beispiele aus heutigen Posts (erwartet: post_type "other", score <= 30):
+- Barbara Gruber (Datenhandel/GDPR-Gespräch): kein KI-Sichtbarkeits-Bezug -> "other", score max 30.
+- Focused Energy (Kernfusion/Energie): -> "other", score max 30.
+- Jenny Werner / Matthias Mager (Nutzenkommunikation im Vertrieb, ohne KI-Thema): -> "other", score max 30.
 
 Score f\u00fcr "hiring":
 + Rolle \u00fcberschneidet sich mit: KI, Automatisierung, GEO/SEO, Content, Creative Direction,
@@ -267,9 +283,10 @@ def load_keywords(supa_get, errors):
 def fetch_keyword_posts(qlist, errors, stats):
     candidates = []
     for q, lane in qlist:
+        qq = q if q.startswith(chr(34)) else chr(34) + q + chr(34)
         try:
             r = subprocess.run(
-                ["treg", "call", "anyapi.linkedin.search.posts", "--data", json.dumps({"query": q, "datePosted": DATE_WINDOW}), "--json"],
+                ["treg", "call", "anyapi.linkedin.search.posts", "--data", json.dumps({"query": qq, "datePosted": DATE_WINDOW}), "--json"],
                 capture_output=True, text=True, timeout=120,
             )
             d = json.loads(r.stdout)
@@ -633,6 +650,15 @@ def main():
 
     dropped = []
 
+    # filtro duro de tema (gratis, antes del LLM)
+    topic_ok = []
+    for c in candidates:
+        if TOPIC_RE.search(c.get("text") or ""):
+            topic_ok.append(c)
+        else:
+            dropped.append({"author": c.get("author"), "reason": "topic_filter"})
+    candidates = topic_ok
+
     # antiguedad inicial: 7 dias (el corte de 36h para conversation va despues del clasificador)
     age_ok = []
     for c in candidates:
@@ -708,8 +734,14 @@ def main():
         angle = (cl.get("angle") or "none").strip()
         reason = (cl.get("reason") or "").strip()
         signals = cl.get("region_signals") if isinstance(cl.get("region_signals"), list) else []
+        ev = str(cl.get("evidence") or "").strip()
+        if not ev or re.sub(r"\s+", " ", ev) not in re.sub(r"\s+", " ", c.get("text") or ""):
+            score = 0
         ah = c.get("age_hours")
 
+        if ptype == "hiring" and not HIRE_RE.search(c.get("text") or ""):
+            dropped.append({"author": c.get("author"), "reason": "hiring_terms_missing", "score": score})
+            continue
         if ptype not in ("conversation", "hiring"):
             dropped.append({"author": c.get("author"), "reason": f"post_type={ptype or '?'}", "score": score})
             continue
