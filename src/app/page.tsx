@@ -10,19 +10,12 @@ import { ToastProvider, useToast } from "@/components/jobi/Toast";
 import {
   buildDirectory,
   stageOf,
+  EMPTY_LINKEDIN_COUNTS,
   type Contact,
   type LinkedInCounts,
 } from "@/lib/jobi";
 
 type TabId = "contacts" | "linkedin" | "directory";
-
-const EMPTY_COUNTS: LinkedInCounts = {
-  posts: 0,
-  draft_ready: 0,
-  published: 0,
-  avg_score: 0,
-  queue: 0,
-};
 
 function Dashboard() {
   const notify = useToast();
@@ -30,7 +23,7 @@ function Dashboard() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [liCounts, setLiCounts] = useState<LinkedInCounts>(EMPTY_COUNTS);
+  const [liCounts, setLiCounts] = useState<LinkedInCounts>(EMPTY_LINKEDIN_COUNTS);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -137,6 +130,11 @@ function Dashboard() {
               onClick={() => setTab("linkedin")}
             >
               Post <span className="count">{liCounts.posts + liCounts.queue}</span>
+              {liCounts.queue > 0 ? (
+                <span className="count hot" title="Pendientes de revisión">
+                  {liCounts.queue}
+                </span>
+              ) : null}
             </button>
             <button
               role="tab"

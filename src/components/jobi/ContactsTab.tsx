@@ -201,6 +201,8 @@ export function ContactsTab({
             const stage = stageOf(contact.estado);
             const hasEmail = hasValue(contact.contacto_email);
             const hasLinkedin = hasValue(contact.contacto_linkedin);
+            const isLinkedInSource =
+              (contact.fuente || "").trim().toLowerCase() === "linkedin";
             const primary =
               contact.contacto_nombre || contact.contacto_email || "Sin contacto";
             return (
@@ -251,16 +253,33 @@ export function ContactsTab({
                     ) : null}
                   </div>
                   <div className="keep-sm">
-                    <span
-                      className="badge"
+                    <div
                       style={{
-                        background: `var(--s-${stage}-bg)`,
-                        color: `var(--s-${stage}-fg)`,
+                        display: "flex",
+                        gap: 8,
+                        alignItems: "center",
+                        flexWrap: "wrap",
                       }}
                     >
-                      <i style={{ background: `var(--s-${stage}-dot)` }} />
-                      {stageLabel(stage)}
-                    </span>
+                      <span
+                        className="badge"
+                        style={{
+                          background: `var(--s-${stage}-bg)`,
+                          color: `var(--s-${stage}-fg)`,
+                        }}
+                      >
+                        <i style={{ background: `var(--s-${stage}-dot)` }} />
+                        {stageLabel(stage)}
+                      </span>
+                      {isLinkedInSource ? (
+                        <span
+                          className="pill pill--demo"
+                          style={{ height: 26, padding: "0 10px" }}
+                        >
+                          LinkedIn
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                   <div
                     className="hide-sm hide-md"

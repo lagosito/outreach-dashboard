@@ -1,6 +1,7 @@
 "use client";
 
-import { Briefcase, Check, Copy, Send, X } from "lucide-react";
+import { Briefcase, Check, Copy, ExternalLink, Send, X } from "lucide-react";
+import { useState } from "react";
 import {
   buildMailto,
   draftText,
@@ -12,6 +13,9 @@ import {
 } from "@/lib/jobi";
 import { LinkedInGlyph } from "./icons";
 import { copyText, useToast } from "./Toast";
+import { SegControl } from "./fields";
+
+type DmMode = "candidate" | "partner";
 
 function DraftBlock({
   title,
@@ -72,9 +76,37 @@ export function ContactDetail({
   const mh = splitSubject(contact.email_draft, contact);
   const fl = splitSubject(contact.email_freelancer, contact);
 
+  // LinkedIn direct messages (JOBI v2 rows): both variants stay editable.
+  const hasLiDm =
+    hasValue(contact.draft_dm_candidate) || hasValue(contact.draft_dm_partner);
+  const [dmMode, setDmMode] = useState<DmMode>(
+    hasValue(contact.draft_dm_candidate) ? "candidate" : "partner"
+  );
+  const [dmCandidate, setDmCandidate] = useState(contact.draft_dm_candidate || "");
+  const [dmPartner, setDmPartner] = useState(contact.draft_dm_partner || "");
+  const [dmComment, setDmComment] = useState(contact.draft_comment || "");
+  const dmVisible = dmMode === "candidate" ? dmCandidate : dmPartner;
+
   const copy = async (text: string, message: string) => {
     const ok = await copyText(text);
     notify(ok ? message : "No se pudo copiar");
+  };
+
+  const saveLiDraft = async (
+    field: "draft_dm_candidate" | "draft_dm_partner" | "draft_comment",
+    value: string
+  ) => {
+    try {
+      const res = await fetch("/api/contacts/update-li", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: contact.id, [field]: value }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      notify("Borrador guardado");
+    } catch {
+      notify("No se pudo guardar el borrador");
+    }
   };
 
   return (
@@ -123,6 +155,97 @@ export function ContactDetail({
             </p>
           )}
         </div>
+
+        {hasLiDm ? (
+          <div className="dsec" data-testid="li-dm">
+            <h4>
+              Mensajes de LinkedIn
+              <span className="tag">
+                {dmMode === "candidate" ? "Candidato" : "Partner"}
+              </span>
+            </h4>
+            <SegControl
+              label="Tipo de DM"
+              labelId="dm-mode"
+              value={dmMode}
+              onChange={(value) => setDmMode(value as DmMode)}
+              options={[
+                { value: "candidate", label: "DM Candidato" },
+                { value: "partner", label: "DM Partner" },
+              ]}
+            />
+            <div className="draft">
+              <label className="eyebrow" htmlFor={`dm-${contact.id}`}>
+                {dmMode === "candidate" ? "DM Candidato" : "DM Partner"}
+                <span className="tag">{dmVisible.length} caracteres</span>
+              </label>
+              <textarea
+                id={`dm-${contact.id}`}
+                style={{ minHeight: 160 }}
+                value={dmVisible}
+                onChange={(event) =>
+                  dmMode === "candidate"
+                    ? setDmCandidate(event.target.value)
+                    : setDmPartner(event.target.value)
+                }
+                onBlur={() =>
+                  saveLiDraft(
+                    dmMode === "candidate" ? "draft_dm_candidate" : "draft_dm_partner",
+                    dmVisible
+                  )
+                }
+              />
+              <button
+                className="minibtn"
+                type="button"
+                onClick={() => copy(dmVisible, "DM copiado")}
+              >
+                <Copy size={16} />
+                Copiar DM
+              </button>
+            </div>
+            <div className="draft">
+              <label className="eyebrow" htmlFor={`dc-${contact.id}`}>
+                Comentario
+                <span className="tag">{dmComment.length} caracteres</span>
+              </label>
+              <textarea
+                id={`dc-${contact.id}`}
+                style={{ minHeight: 120 }}
+                value={dmComment}
+                onChange={(event) => setDmComment(event.target.value)}
+                onBlur={() => saveLiDraft("draft_comment", dmComment)}
+              />
+            </div>
+            <div className="actions">
+              {hasValue(contact.contacto_linkedin) ? (
+                <a
+                  className="btn"
+                  href={contact.contacto_linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink size={16} />
+                  Abrir perfil
+                </a>
+              ) : (
+                <button className="btn" type="button" disabled>
+                  <ExternalLink size={16} />
+                  Abrir perfil
+                </button>
+              )}
+              <button
+                className="btn good"
+                type="button"
+                disabled={stage === "enviado"}
+                onClick={() => onStatusChange(contact.id, "Enviado")}
+              >
+                <Send size={16} />
+                {stage === "enviado" ? "Enviado" : "Marcar enviado"}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {hasIntro ? (
           <div className="dsec">

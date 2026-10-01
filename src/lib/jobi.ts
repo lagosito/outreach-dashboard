@@ -21,13 +21,61 @@ export interface Contact {
   fuente: string | null;
   created_at: string;
   updated_at: string;
+  // JOBI v2: LinkedIn-sourced rows (fuente = linkedin) carry their own drafts.
+  score?: number | null;
+  reason?: string | null;
+  draft_dm_candidate?: string | null;
+  draft_dm_partner?: string | null;
+  draft_comment?: string | null;
 }
 
+/** The five workflow states stored in linkedin_engagements.status. */
 export type LinkedInStatus =
-  | "pending_approval"
-  | "draft_ready"
+  | "pending"
+  | "approved"
+  | "rejected"
   | "published"
-  | "discarded";
+  | "needs_review";
+
+export type LinkedInOutcome =
+  | "none"
+  | "author_reply"
+  | "profile_visit"
+  | "connection"
+  | "dm"
+  | "meeting";
+
+/**
+ * Statuses written by older scans are still present in some rows, so every
+ * read goes through the normaliser: unknown values land in `needs_review`
+ * (the amber queue) instead of breaking the counters.
+ */
+const STATUS_ALIASES: Record<string, LinkedInStatus> = {
+  pending: "pending",
+  pending_approval: "pending",
+  approved: "approved",
+  draft_ready: "approved",
+  rejected: "rejected",
+  discarded: "rejected",
+  published: "published",
+  needs_review: "needs_review",
+};
+
+export function normalizeLinkedInStatus(
+  raw: string | null | undefined
+): LinkedInStatus {
+  if (!raw) return "needs_review";
+  return STATUS_ALIASES[raw] ?? "needs_review";
+}
+
+export const LINKEDIN_QUEUE_STATUSES: LinkedInStatus[] = [
+  "pending",
+  "needs_review",
+];
+
+export function isQueueStatus(status: LinkedInStatus): boolean {
+  return status === "pending" || status === "needs_review";
+}
 
 export interface LinkedInRow {
   id: string;
@@ -46,6 +94,19 @@ export interface LinkedInRow {
   approved_at: string | null;
   published_at: string | null;
   created_at: string;
+  // JOBI v2 columns (optional: older rows / demo rows may not carry them).
+  post_type?: "conversation" | "hiring" | null;
+  angle?: "buyer" | "expert" | "hiring_candidate" | "hiring_partner" | "none" | null;
+  language?: "de" | "en" | null;
+  register?: "du" | "sie" | "neutral" | null;
+  region_signals?: Record<string, unknown> | null;
+  score_reason?: string | null;
+  author_profile_url?: string | null;
+  post_age_hours?: number | null;
+  mention_used?: boolean | null;
+  draft_dm?: string | null;
+  outcome?: LinkedInOutcome | null;
+  outcome_at?: string | null;
 }
 
 export type StageId =
@@ -197,29 +258,76 @@ export function scoreColor(score: number): string {
 export const LINKEDIN_TABLE = "linkedin_engagements";
 
 export interface LinkedInCounts {
+  /** Rows outside the approval queue (approved + rejected + published). */
   posts: number;
-  draft_ready: number;
+  approved: number;
+  rejected: number;
   published: number;
-  avg_score: number;
+  pending: number;
+  needs_review: number;
+  /** pending + needs_review: what the amber badge shows. */
   queue: number;
+  /** Every row in linkedin_engagements: posts + queue. */
+  total: number;
+  avg_score: number;
 }
 
+export const EMPTY_LINKEDIN_COUNTS: LinkedInCounts = {
+  posts: 0,
+  approved: 0,
+  rejected: 0,
+  published: 0,
+  pending: 0,
+  needs_review: 0,
+  queue: 0,
+  total: 0,
+  avg_score: 0,
+};
+
 export const LINKEDIN_STATUS_LABEL: Record<LinkedInStatus, string> = {
-  pending_approval: "Pendiente de aprobación",
-  draft_ready: "Borrador listo",
+  pending: "Pendiente de aprobación",
+  approved: "Aprobado",
+  rejected: "Rechazado",
   published: "Publicado",
-  discarded: "Descartado",
+  needs_review: "Revisar",
 };
 
 export const LINKEDIN_STATUS_PILL: Record<
   LinkedInStatus,
   "draft" | "publicado" | "descartado"
 > = {
-  pending_approval: "draft",
-  draft_ready: "draft",
+  pending: "draft",
+  approved: "draft",
   published: "publicado",
-  discarded: "descartado",
+  rejected: "descartado",
+  needs_review: "draft",
 };
+
+export const LINKEDIN_OUTCOME_LABEL: Record<LinkedInOutcome, string> = {
+  none: "Sin resultado",
+  author_reply: "Respuesta del autor",
+  profile_visit: "Visita al perfil",
+  connection: "Conexión",
+  dm: "DM enviado",
+  meeting: "Reunión",
+};
+
+export const LINKEDIN_OUTCOMES: LinkedInOutcome[] = [
+  "none",
+  "author_reply",
+  "profile_visit",
+  "connection",
+  "dm",
+  "meeting",
+];
+
+/** Outcomes that count as a positive result in the metrics table. */
+export const POSITIVE_OUTCOMES: LinkedInOutcome[] = [
+  "author_reply",
+  "connection",
+  "dm",
+  "meeting",
+];
 
 export function sourceLabel(row: LinkedInRow): string {
   if (row.source === "keyword" && row.keyword) return `Keyword: ${row.keyword}`;

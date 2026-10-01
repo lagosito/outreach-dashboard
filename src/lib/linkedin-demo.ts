@@ -25,7 +25,7 @@ export const DEMO_POSTS: DemoLinkedInRow[] = [
     source: "feed",
     keyword: null,
     score: 92,
-    status: "draft_ready",
+    status: "approved",
     comment_draft:
       "Muy de acuerdo, Clara. En nuestro caso el mayor salto vino de sustituir el primer toque genérico por una hipótesis concreta sobre la cuenta. ¿Probasteis a variar el mensaje según el rol del decisor?",
     posted_at: null,
@@ -47,7 +47,7 @@ export const DEMO_POSTS: DemoLinkedInRow[] = [
     source: "keyword",
     keyword: "Content Lebensmittel",
     score: 88,
-    status: "draft_ready",
+    status: "approved",
     comment_draft:
       "Spannender Schwenk. Die Stille zwischen den Peaks kennen wir von fast jeder Marke. Was kleinen Teams hilft: die Markensprache einmal sauber festhalten, dann wird wöchentlicher Content zur Routine. Welche Formate testet ihr zuerst?",
     posted_at: null,
@@ -68,7 +68,7 @@ export const DEMO_POSTS: DemoLinkedInRow[] = [
     source: "feed",
     keyword: null,
     score: 84,
-    status: "draft_ready",
+    status: "approved",
     comment_draft:
       "Starker Punkt, dass Stories mehr bewegt haben als die Website. Habt ihr dafür feste Formate oder entsteht das spontan im Haus?",
     posted_at: null,
@@ -108,7 +108,7 @@ export const DEMO_POSTS: DemoLinkedInRow[] = [
     source: "keyword",
     keyword: "Agentur",
     score: 63,
-    status: "discarded",
+    status: "rejected",
     comment_draft: "",
     posted_at: null,
     approved_at: null,

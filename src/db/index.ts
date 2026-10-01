@@ -24,6 +24,12 @@ export interface Contact {
   fuente: string | null;
   created_at: string;
   updated_at: string;
+  // JOBI v2: LinkedIn-sourced rows (fuente = linkedin) carry their own drafts.
+  score?: number | null;
+  reason?: string | null;
+  draft_dm_candidate?: string | null;
+  draft_dm_partner?: string | null;
+  draft_comment?: string | null;
 }
 
 interface SupabaseResponse {

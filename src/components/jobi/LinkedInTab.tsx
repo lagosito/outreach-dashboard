@@ -3,6 +3,9 @@
 import { Check, Copy, ExternalLink, X } from "lucide-react";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
+  EMPTY_LINKEDIN_COUNTS,
+  LINKEDIN_OUTCOMES,
+  LINKEDIN_OUTCOME_LABEL,
   LINKEDIN_STATUS_LABEL,
   LINKEDIN_STATUS_PILL,
   initials,
@@ -10,6 +13,7 @@ import {
   shortDate,
   sourceLabel,
   type LinkedInCounts,
+  type LinkedInOutcome,
   type LinkedInRow,
 } from "@/lib/jobi";
 import { DEMO_POSTS, type DemoLinkedInRow } from "@/lib/linkedin-demo";
@@ -18,19 +22,29 @@ import { SearchField, SegControl, SelectField, StripCard } from "./fields";
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "Todos los estados" },
-  { value: "pending_approval", label: "Pendiente" },
-  { value: "draft_ready", label: "Borrador listo" },
+  { value: "pending", label: "Pendiente de aprobación" },
+  { value: "approved", label: "Aprobado" },
+  { value: "rejected", label: "Rechazado" },
   { value: "published", label: "Publicado" },
-  { value: "discarded", label: "Descartado" },
+  { value: "needs_review", label: "Revisar" },
 ];
 
-const EMPTY_COUNTS: LinkedInCounts = {
-  posts: 0,
-  draft_ready: 0,
-  published: 0,
-  avg_score: 0,
-  queue: 0,
-};
+const OUTCOME_OPTIONS: { value: string; label: string }[] =
+  LINKEDIN_OUTCOMES.map((outcome) => ({
+    value: outcome,
+    label: LINKEDIN_OUTCOME_LABEL[outcome],
+  }));
+
+/** Metrics table grid: keyword + the four numbers, scrolls horizontally. */
+const METRIC_GRID = "none / minmax(180px, 2fr) 110px 120px 110px 110px";
+
+interface KeywordMetric {
+  keyword: string;
+  results: number;
+  passed_dach: number;
+  approved: number;
+  outcomes: number;
+}
 
 type Row = LinkedInRow & { demo?: boolean };
 
@@ -44,6 +58,7 @@ export function LinkedInTab({
   const notify = useToast();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [metricsOpen, setMetricsOpen] = useState(false);
   const [q, setQ] = useState("");
   const [pub, setPub] = useState("todos");
   const [estado, setEstado] = useState("");
@@ -52,7 +67,8 @@ export function LinkedInTab({
   const [to, setTo] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
   const [queue, setQueue] = useState<LinkedInRow[]>([]);
-  const [counts, setCounts] = useState<LinkedInCounts>(EMPTY_COUNTS);
+  const [metrics, setMetrics] = useState<KeywordMetric[]>([]);
+  const [counts, setCounts] = useState<LinkedInCounts>(EMPTY_LINKEDIN_COUNTS);
   const [overrides, setOverrides] = useState<Record<string, Partial<Row>>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [openId, setOpenId] = useState<string | null | undefined>(undefined);
@@ -76,7 +92,7 @@ export function LinkedInTab({
       const data = await res.json();
       setRows(data.rows || []);
       setQueue(data.queue || []);
-      const next = { ...EMPTY_COUNTS, ...(data.counts || {}) };
+      const next = { ...EMPTY_LINKEDIN_COUNTS, ...(data.counts || {}) };
       setCounts(next);
       countsRef.current(next);
       setFailed(false);
@@ -85,22 +101,38 @@ export function LinkedInTab({
     }
   }, [q, pub, estado, score, from, to]);
 
+  const loadMetrics = useCallback(async () => {
+    try {
+      const res = await fetch("/api/linkedin/metrics");
+      if (!res.ok) throw new Error(String(res.status));
+      const data = await res.json();
+      setMetrics(Array.isArray(data.keywords) ? data.keywords : []);
+    } catch {
+      setMetrics([]);
+    }
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load, refreshKey]);
+    loadMetrics();
+  }, [load, loadMetrics, refreshKey]);
 
   const demo = !failed && counts.posts === 0 && counts.queue === 0;
 
   const sourceRows: Row[] = useMemo(() => {
-    const base: Row[] = demo
-      ? DEMO_POSTS.map((row: DemoLinkedInRow) => ({
-          ...row,
-          ...(overrides[row.id] || {}),
-        }))
-      : [
-          ...queue.map((row) => ({ ...row, ...(overrides[row.id] || {}) })),
-          ...rows.map((row) => ({ ...row, ...(overrides[row.id] || {}) })),
-        ];
+    if (demo) {
+      return DEMO_POSTS.map((row: DemoLinkedInRow) => ({
+        ...row,
+        ...(overrides[row.id] || {}),
+      }));
+    }
+    const seen = new Set<string>();
+    const base: Row[] = [];
+    for (const item of [...queue, ...rows]) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      base.push({ ...item, ...(overrides[item.id] || {}) });
+    }
     return base;
   }, [demo, rows, queue, overrides]);
 
@@ -118,7 +150,7 @@ export function LinkedInTab({
           const haystack =
             `${row.author_name} ${row.author_role || ""} ${row.post_summary || ""} ${
               row.post_text || ""
-            }`.toLowerCase();
+            } ${row.keyword || ""}`.toLowerCase();
           if (!haystack.includes(search)) return false;
         }
         return true;
@@ -126,14 +158,9 @@ export function LinkedInTab({
     [sourceRows, pub, estado, score, from, to, search]
   );
 
-  const activeFilters = [
-    q,
-    pub !== "todos",
-    estado,
-    score > 0,
-    from,
-    to,
-  ].filter(Boolean).length;
+  const activeFilters = [q, pub !== "todos", estado, score > 0, from, to].filter(
+    Boolean
+  ).length;
 
   const effectiveOpen = openId === undefined ? (visibleRows[0]?.id ?? null) : openId;
 
@@ -161,12 +188,41 @@ export function LinkedInTab({
     patchRow(id, { comment_draft: value }, "Comentario guardado");
   };
 
+  const approve = (id: string, queueItem = false) =>
+    patchRow(id, { status: "approved" }, queueItem ? "Aprobado, ya está en la lista" : "Aprobado");
+
+  const reject = (id: string) =>
+    patchRow(id, { status: "rejected" }, "Candidato rechazado");
+
+  const setOutcome = (id: string, outcome: string) =>
+    patchRow(
+      id,
+      {
+        outcome,
+        outcome_at: outcome === "none" ? null : new Date().toISOString(),
+      },
+      "Resultado actualizado"
+    );
+
+  const metricTotals = useMemo(
+    () =>
+      metrics.reduce(
+        (acc, m) => ({
+          results: acc.results + (m.results || 0),
+          approved: acc.approved + (m.approved || 0),
+          outcomes: acc.outcomes + (m.outcomes || 0),
+        }),
+        { results: 0, approved: 0, outcomes: 0 }
+      ),
+    [metrics]
+  );
+
   return (
     <div className="stack">
       <StripCard
         className="queue"
         title="Cola de aprobación"
-        kpis={[{ value: counts.queue, label: "candidatos pendientes" }]}
+        kpis={[{ value: counts.queue, label: "pendientes de revisión" }]}
         actionLabel="Ver detalle"
         open={queueOpen}
         onToggle={() => setQueueOpen((v) => !v)}
@@ -192,16 +248,12 @@ export function LinkedInTab({
                 <button
                   type="button"
                   className="btn primary"
-                  onClick={() => patchRow(item.id, { status: "draft_ready" }, "Aprobado, ya está en la lista")}
+                  onClick={() => approve(item.id, true)}
                 >
                   <Check size={16} />
                   Aprobar
                 </button>
-                <button
-                  type="button"
-                  className="btn bad"
-                  onClick={() => patchRow(item.id, { status: "discarded" }, "Candidato rechazado")}
-                >
+                <button type="button" className="btn bad" onClick={() => reject(item.id)}>
                   <X size={16} />
                   Rechazar
                 </button>
@@ -219,7 +271,7 @@ export function LinkedInTab({
         title="Resumen de LinkedIn"
         kpis={[
           { value: counts.posts + counts.queue, label: "posts" },
-          { value: counts.draft_ready, label: "con borrador listo" },
+          { value: counts.approved, label: "aprobados" },
           { value: counts.published, label: "publicados" },
           { value: counts.avg_score, label: "score medio" },
         ]}
@@ -245,7 +297,11 @@ export function LinkedInTab({
             options={[
               { value: "todos", label: "Todos", count: counts.posts + counts.queue },
               { value: "si", label: "Sí", count: counts.published },
-              { value: "no", label: "No", count: counts.posts + counts.queue - counts.published },
+              {
+                value: "no",
+                label: "No",
+                count: counts.posts + counts.queue - counts.published,
+              },
             ]}
           />
           <SelectField
@@ -289,6 +345,53 @@ export function LinkedInTab({
         </div>
       </StripCard>
 
+      <StripCard
+        title="Métricas por keyword"
+        kpis={[
+          { value: metrics.length, label: "keywords" },
+          { value: metricTotals.results, label: "resultados 14 días" },
+          { value: metricTotals.approved, label: "aprobados" },
+          { value: metricTotals.outcomes, label: "outcomes" },
+        ]}
+        actionLabel="Ver métricas"
+        open={metricsOpen}
+        onToggle={() => setMetricsOpen((v) => !v)}
+        bodyId="kw-body"
+      >
+        {metrics.length ? (
+          <div style={{ overflowX: "auto" }}>
+            <div className="table">
+              <div className="thead" style={{ grid: METRIC_GRID }}>
+                <span>Keyword</span>
+                <span>Resultados</span>
+                <span>Pasan DACH</span>
+                <span>Aprobados</span>
+                <span>Outcomes</span>
+              </div>
+              {metrics.map((metric) => (
+                <div className="row" key={metric.keyword}>
+                  <div
+                    className="row-main"
+                    style={{ grid: METRIC_GRID, minHeight: 46 }}
+                  >
+                    <span style={{ fontWeight: 600 }}>{metric.keyword}</span>
+                    <span>{metric.results}</span>
+                    <span>{metric.passed_dach}</span>
+                    <span>{metric.approved}</span>
+                    <span>{metric.outcomes}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p style={{ margin: 0, color: "var(--muted)" }}>
+            Todavía no hay métricas por keyword. El scan diario las rellena con los
+            últimos 14 días.
+          </p>
+        )}
+      </StripCard>
+
       <div className="card">
         <div className="resultline">
           {failed ? (
@@ -318,17 +421,24 @@ export function LinkedInTab({
           {visibleRows.map((row) => {
             const open = effectiveOpen === row.id;
             const role = (row.author_role || "").replace(", ", " · ");
-            const pill = LINKEDIN_STATUS_PILL[row.status];
-            const label = LINKEDIN_STATUS_LABEL[row.status];
+            const pill = LINKEDIN_STATUS_PILL[row.status] ?? "draft";
+            const label = LINKEDIN_STATUS_LABEL[row.status] ?? row.status;
             const comment = drafts[row.id] ?? row.comment_draft ?? "";
             const scoreValue = Number(row.score) || 0;
+            const reason = row.score_reason || row.post_summary || "";
+            const language = row.language ? row.language.toUpperCase() : "";
+            const outcome: LinkedInOutcome = row.outcome || "none";
+            const inQueue = row.status === "pending" || row.status === "needs_review";
+            const isPublished = row.status === "published";
+            const isApproved = row.status === "approved";
+            const isRejected = row.status === "rejected";
             return (
               <div className={open ? "row li open" : "row li"} key={row.id}>
                 <div
                   className="row-main cols-li"
                   onClick={(event) => {
                     const target = event.target as HTMLElement;
-                    if (target.closest("a,button,textarea")) return;
+                    if (target.closest("a,button,textarea,select")) return;
                     setOpenId(open ? null : row.id);
                   }}
                 >
@@ -402,11 +512,27 @@ export function LinkedInTab({
                     <div className="li-col">
                       <h4 className="eyebrow">Post completo</h4>
                       <p className="li-post">{row.post_text}</p>
+                      <div>
+                        <h4 className="eyebrow" style={{ marginBottom: 8 }}>
+                          Por qué encaja
+                        </h4>
+                        <p className="li-post">{reason}</p>
+                      </div>
                       <div className="li-meta">
                         {row.post_url ? (
                           <a href={row.post_url} target="_blank" rel="noopener noreferrer">
                             <ExternalLink size={16} />
                             Ver en LinkedIn
+                          </a>
+                        ) : null}
+                        {row.author_profile_url ? (
+                          <a
+                            href={row.author_profile_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink size={16} />
+                            Abrir perfil
                           </a>
                         ) : null}
                         <span>
@@ -425,8 +551,20 @@ export function LinkedInTab({
                           </svg>
                           {sourceLabel(row)}
                         </span>
+                        {row.keyword && row.source !== "keyword" ? (
+                          <span>Keyword: {row.keyword}</span>
+                        ) : null}
+                        {language ? <span className="tag">{language}</span> : null}
                         <span>Score {scoreValue}</span>
                       </div>
+                      {row.mention_used ? (
+                        <p style={{ margin: 0 }}>
+                          <span className="pill pill--demo">
+                            <i />
+                            Menciona GEO-Check / El Kiosk
+                          </span>
+                        </p>
+                      ) : null}
                     </div>
                     <div className="li-col">
                       <label className="eyebrow" htmlFor={`cm-${row.id}`}>
@@ -470,14 +608,12 @@ export function LinkedInTab({
                             Abrir post
                           </a>
                         ) : null}
-                        {row.status === "pending_approval" ? (
+                        {inQueue ? (
                           <>
                             <button
                               type="button"
                               className="btn primary"
-                              onClick={() =>
-                                patchRow(row.id, { status: "draft_ready" }, "Aprobado, ya está en la lista")
-                              }
+                              onClick={() => approve(row.id)}
                             >
                               <Check size={16} />
                               Aprobar
@@ -485,40 +621,76 @@ export function LinkedInTab({
                             <button
                               type="button"
                               className="btn bad"
-                              onClick={() =>
-                                patchRow(row.id, { status: "discarded" }, "Candidato rechazado")
-                              }
+                              onClick={() => reject(row.id)}
                             >
                               <X size={16} />
                               Rechazar
                             </button>
                           </>
-                        ) : (
+                        ) : null}
+                        {isApproved ? (
                           <>
                             <button
                               type="button"
                               className="btn primary"
-                              disabled={row.status === "published"}
                               onClick={() =>
-                                patchRow(row.id, { status: "published" }, "Marcado como publicado")
+                                patchRow(
+                                  row.id,
+                                  { status: "published" },
+                                  "Marcado como publicado"
+                                )
                               }
                             >
                               <Check size={16} />
-                              {row.status === "published" ? "Publicado" : "Marcar publicado"}
+                              Marcar publicado
                             </button>
                             <button
                               type="button"
                               className="btn bad"
-                              disabled={row.status === "discarded"}
-                              onClick={() =>
-                                patchRow(row.id, { status: "discarded" }, "Post descartado")
-                              }
+                              onClick={() => reject(row.id)}
                             >
                               <X size={16} />
-                              Descartar
+                              Rechazar
                             </button>
                           </>
-                        )}
+                        ) : null}
+                        {isRejected ? (
+                          <button
+                            type="button"
+                            className="btn primary"
+                            onClick={() => approve(row.id)}
+                          >
+                            <Check size={16} />
+                            Aprobar
+                          </button>
+                        ) : null}
+                        {isPublished ? (
+                          <div className="field" style={{ width: "100%" }}>
+                            <label htmlFor={`oc-${row.id}`}>Resultado</label>
+                            <select
+                              id={`oc-${row.id}`}
+                              className="input"
+                              value={outcome}
+                              onChange={(event) => setOutcome(row.id, event.target.value)}
+                            >
+                              {OUTCOME_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            {row.outcome_at ? (
+                              <span
+                                style={{
+                                  fontSize: "var(--fs-sm)",
+                                  color: "var(--muted)",
+                                }}
+                              >
+                                Registrado el {shortDate(row.outcome_at)}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
