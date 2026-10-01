@@ -28,7 +28,7 @@ import urllib.request
 DEFAULT_QUERIES = ["KI Sichtbarkeit ChatGPT", "Generative Engine Optimization", "KI Marketing Automation", "AI Visibility Agentur"]
 DATE_WINDOW = "last-week"
 THRESHOLD = int(os.environ.get("JOBI_SCORE_THRESHOLD", "75"))
-MAX_CANDIDATES = 80
+MAX_CANDIDATES = 300  # clasificar casi todo: evita sesgo de stats (passed_dach) por cap
 CHUNK = 8
 LI_HOME = "https://www.linkedin.com"
 CONV_MAX_AGE_H = 36
