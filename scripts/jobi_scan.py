@@ -22,19 +22,49 @@ import time
 import urllib.error
 import urllib.request
 
-QUERIES = ["AI visibility GEO", "KI Marketing Automation"]
+QUERIES = ["KI Sichtbarkeit ChatGPT", "Generative Engine Optimization", "KI Marketing Automation", "AI Visibility Agentur"]
 DATE_WINDOW = "last-week"  # fallback "last-day" not verified
 THRESHOLD = 75
 MAX_CANDIDATES = 40
 CHUNK = 15
 LI_HOME = "https://www.linkedin.com"
 
+DE_WORDS = {"der","die","das","und","ist","nicht","mit","fur","fur","auf","auch","noch","mehr","werden","eine","sich","uber","zur","zum","dem","den","bei","vom","kann","wie","wir","sie","sind","hat","für","über"}
+EN_WORDS = {"the","and","is","are","not","with","for","on","also","more","will","can","how","this","that","you","your","from","our","what","when"}
+ES_MARK = re.compile(r"[\u00bf\u00a1]|\b(cion|est\u00e1|c\u00f3mo|qu\u00e9|fascinante|interesante|tambi\u00e9n|empresa|marca|contenido|b\u00fasqueda)\b", re.I)
+DACH_HINTS = ["deutschland","germany","\u00f6sterreich","austria","schweiz","switzerland","hamburg","berlin","m\u00fcnchen","munich","k\u00f6ln","cologne","frankfurt","stuttgart","wien","vienna","z\u00fcrich","zurich","d\u00fcsseldorf","dusseldorf","gmbh","agentur","#dach","dach region","dach-markt",".de ",".at ",".ch "]
+
+
+def detect_lang(text):
+    text = (text or "").strip()
+    if len(text) < 40:
+        return "unknown"
+    t = " " + re.sub(r"[^a-zA-Z\u00e4\u00f6\u00fc\u00df ]", " ", text.lower()) + " "
+    es = len(ES_MARK.findall(text))
+    de = sum(t.count(" " + w + " ") for w in DE_WORDS) + sum(text.lower().count(ch) for ch in "\u00e4\u00f6\u00fc\u00df")
+    en = sum(t.count(" " + w + " ") for w in EN_WORDS)
+    if es >= 2 and es >= de and es >= en:
+        return "es"
+    if de > 0 and de >= en:
+        return "de"
+    if en > 0 and en > de:
+        return "en"
+    return "unknown"
+
+
+def region_ok(text, author, role):
+    hay = ((text or "") + " " + (author or "") + " " + (role or "")).lower()
+    if detect_lang(text[:800]) == "de":
+        return True
+    return any(h in hay for h in DACH_HINTS)
+
+
 PROMPT_RULES = """Eres el filtro de oportunidades de engagement de JOBI (Gabriel Lagos, Make Happen GmbH / El Kiosk, DACH).
 Para cada post, devuelve un objeto con:
-- "score" (0-100): oportunidad real de aportar valor a la conversacion. Alto = el post trata temas donde Gabriel tiene experiencia genuina (Generative Engine Optimization / AI visibility / SEO, KI-Marketing-automation, contenido, growth, agencias B2B, hiring de creativos/tech en DACH) Y hay hueco para un comentario sustantivo. Bajo = spam, promotion pura, off-topic, ya con 50+ comentarios de respuesta, o conversacion cerrada.
+- "score" (0-100): oportunidad real de aportar valor a la conversacion. Alto = el post trata temas donde Gabriel tiene experiencia genuina (Generative Engine Optimization / AI visibility / SEO, KI-Marketing-automation, contenido, growth, agencias B2B, hiring de creativos/tech en DACH) Y hay hueco para un comentario sustantivo. Bajo = spam, promotion pura, off-topic, ya con 50+ comentarios de respuesta, o conversacion cerrada. REGION DACH (prioridad): alto solo si el autor o su empresa opera en DACH (Alemania/Austria/Suiza) O el post trata el mercado DACH — indicios: idioma aleman, empresa/ciudad/dominio .de/.at/.ch, hashtags de la region. Si es claramente otra region (Benelux, UK, US, Latam), pon score max 40 e is_relevant false.
 - "is_relevant": true solo si score >= 70.
 - "reason": una linea en espanol (max 120 caracteres).
-- "comment_draft": si is_relevant, borrador de comentario (matchea el idioma del post: aleman con aleman, ingles con ingles). Reglas duras: 1) empieza con valor concreto real (dato, matiz, experiencia), 2) nunca suena a marketing, 3) menciona GEO-Check / El Kiosk SOLO si encaja de forma natural y casi nunca (max 1 de cada 5 borradores), 4) sin em dash ni en dash, 5) 150-350 caracteres, 6) termina con una pregunta corta o un punto fuerte, 7) el borrador va EXACTAMENTE en el mismo idioma del post.
+- "post_lang": idioma real del post, uno de "de", "en", "es", u otro codigo ISO corto. No generes ningun borrador aqui.
 Devuelve SOLO un array JSON con EXACTAMENTE un objeto por post, en el mismo orden de entrada, y en cada objeto incluye "url" con la URL tal cual la recibiste. Sin markdown."""
 
 
@@ -262,6 +292,29 @@ def rel_to_iso(n, unit):
 
 # ---------------- scoring ----------------
 
+DRAFT_RULES = """Write ONE LinkedIn comment for a post. TARGET LANGUAGE: {lang_name} ({lang}). The comment MUST be written entirely in {lang_name} — hard rule, even if the post author is German or works for a German company.
+You comment as JOBI (Gabriel Lagos, Make Happen GmbH / El Kiosk, DACH).
+Hard rules: 1) start with real concrete value (fact, nuance, experience), 2) never sound like marketing, 3) mention GEO-Check / El Kiosk ONLY if it fits naturally and almost never (max 1 of 5), 4) no em dash or en dash, 5) 150-350 characters, 6) end with a short question or a strong point, 7) reference something specific from the post.
+Reply ONLY with JSON: {"comment_draft": "..."} where the comment is in {lang_name}. No markdown."""
+
+
+def llm_draft(post, author, role, lang, api_key, errors):
+    lang_name = {"en": "English", "de": "German"}.get(lang, lang)
+    user = DRAFT_RULES.replace("{lang_name}", lang_name).replace("{lang}", lang) + f"\n\nAuthor: {author} {role}\nPost:\n{post[:3000]}"
+    try:
+        resp = http_json(
+            "https://api.orcarouter.ai/v1/chat/completions",
+            {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+            data={"model": "openai/gpt-4o-mini", "temperature": 0.2, "messages": [{"role": "user", "content": user}]},
+        )
+        content = resp["choices"][0]["message"]["content"].strip()
+        m = re.search(r"\{.*\}", content, re.S)
+        return (json.loads(m.group(0)) if m else {}).get("comment_draft")
+    except Exception as e:
+        errors.append(f"draft {author}: {e}")
+        return None
+
+
 def llm_score(candidates, api_key, errors):
     results = {}
     for i in range(0, len(candidates), CHUNK):
@@ -278,8 +331,7 @@ def llm_score(candidates, api_key, errors):
                     "model": "openai/gpt-4o-mini",
                     "temperature": 0.2,
                     "messages": [
-                        {"role": "system", "content": PROMPT_RULES},
-                        {"role": "user", "content": f"Posts:\n{posts}"},
+                        {"role": "user", "content": PROMPT_RULES + "\n\nPosts:\n" + posts},
                     ],
                 },
             )
@@ -367,12 +419,27 @@ def main():
 
     scores = llm_score(fresh, orca, errors)
     to_insert = []
+    dropped = []
     for c in fresh:
         s = scores.get(c["url"])
         if not s:
             continue
         score = int(s.get("score") or 0)
-        if score >= THRESHOLD and s.get("is_relevant") and s.get("comment_draft"):
+        if score >= THRESHOLD and s.get("is_relevant"):
+            pl = (s.get("post_lang") or "").lower()[:2]
+            if pl not in ("de", "en"):
+                pl = detect_lang((c.get("text") or "")[:800])
+            if not region_ok(c.get("text") or "", c.get("author") or "", c.get("role") or ""):
+                dropped.append({"author": c.get("author"), "reason": "no_dach_region", "score": score})
+                continue
+            if pl not in ("de", "en"):
+                dropped.append({"author": c.get("author"), "reason": f"lang_invalid post={pl}", "score": score})
+                continue
+            draft = llm_draft(c.get("text") or "", c.get("author") or "", c.get("role") or "", pl, orca, errors)
+            dl = detect_lang(draft or "")
+            if not draft or dl != pl:
+                dropped.append({"author": c.get("author"), "reason": f"draft_lang post={pl} draft={dl}", "score": score})
+                continue
             to_insert.append({
                 "author_name": (c.get("author") or "")[:200],
                 "author_role": (c.get("role") or "")[:300],
@@ -384,7 +451,7 @@ def main():
                 "keyword": c.get("keyword"),
                 "score": max(0, min(100, score)),
                 "status": "pending_approval",
-                "comment_draft": s["comment_draft"][:2000],
+                "comment_draft": draft[:2000],
                 "posted_at": c.get("posted_at"),
             })
 
@@ -411,6 +478,7 @@ def main():
             errors.append(f"insert: {e}")
 
     digest["inserted"] = len(inserted)
+    digest["dropped"] = dropped
     digest["errors"] = errors
     digest["rows"] = [
         {"score": row["score"], "author": row["author_name"], "url": row["post_url"], "draft": row["comment_draft"]}
