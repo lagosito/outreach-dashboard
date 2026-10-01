@@ -291,6 +291,13 @@ def fetch_keyword_posts(qlist, errors, stats):
             )
             d = json.loads(r.stdout)
             posts = (d.get("output") or {}).get("data", {}).get("posts", [])
+            if not posts:
+                r = subprocess.run(
+                    ["treg", "call", "anyapi.linkedin.search.posts", "--data", json.dumps({"query": q, "datePosted": DATE_WINDOW}), "--json"],
+                    capture_output=True, text=True, timeout=120,
+                )
+                d = json.loads(r.stdout)
+                posts = (d.get("output") or {}).get("data", {}).get("posts", [])
         except Exception as e:
             errors.append(f"treg '{q}': {e}")
             stats[q] = {"results": 0, "passed_dach": 0}
@@ -860,8 +867,16 @@ def main():
     digest["keywords_zero"] = [q for q, s in stats.items() if s["results"] == 0]
     if not args.dry_run:
         try:
+            today = time.strftime("%Y-%m-%d")
+            prev = {}
+            try:
+                prev = {r["query"]: r for r in supa_get(f"/rest/v1/linkedin_keyword_stats?select=query,results,passed_dach&day=eq.{today}")}
+            except Exception:
+                prev = {}
             payload = [
-                {"day": time.strftime("%Y-%m-%d"), "query": q, "results": s["results"], "passed_dach": s["passed_dach"]}
+                {"day": today, "query": q,
+                 "results": max(s["results"], (prev.get(q) or {}).get("results", 0)),
+                 "passed_dach": max(s["passed_dach"], (prev.get(q) or {}).get("passed_dach", 0))}
                 for q, s in stats.items()
             ]
             req = urllib.request.Request(
