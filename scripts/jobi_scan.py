@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""JOBI daily LinkedIn scan: keywords (treg) + optional feed dump -> score -> linkedin_engagements.
+"""JOBI LinkedIn scan v2 (brief Oct 2026) — DACH.
 
-Usage:
-  python3 jobi_scan.py [--feed-dump FILE] [--dry-run] [--json]
+Flujo (cron 08:45):
+  keywords activas (tabla linkedin_keywords) + feed dump opcional
+  -> dedupe URL -> filtro antiguedad (7d) -> dedupe DB (post + autor 7d)
+  -> Prompt A clasificador (lotes) -> descarta: other / no-DACH / score < umbral
+  -> conversation -> Prompt B comentario -> linkedin_engagements (status pending)
+  -> hiring -> Prompt C x2 (candidate/partner) -> outreach_contacts (fuente linkedin)
+  -> stats por keyword (linkedin_keyword_stats) -> digest JSON
 
-Exit 0 always prints a JSON digest:
-  {"scanned": N, "new": N, "inserted": N, "rows": [{score, author, url, draft}], "errors": [...]}
+Salida: siempre JSON en stdout, exit 0.
+Modelo: gpt-4o-mini via OrcaRouter. response_format NO soportado -> parse con fences.
 
-Keyword search goes through treg (anyapi.linkedin.search.posts, ~$0.002/call).
-Scoring: gpt-4o-mini via OrcaRouter (~$0.005/day at 40 posts).
-Feed dumps: JSON file saved by the LinkedIn MCP get_feed call (needs references.feed_post /posts/ links).
+treg anyapi.linkedin.search.posts -> output.data.posts[]:
+  {authorName, authorUrl, url, text, createdUtc (unix secs), reactionCount, commentCount, id}
 """
 import argparse
-import hashlib
 import json
 import os
 import re
@@ -22,17 +25,21 @@ import time
 import urllib.error
 import urllib.request
 
-QUERIES = ["KI Sichtbarkeit ChatGPT", "Generative Engine Optimization", "KI Marketing Automation", "AI Visibility Agentur"]
-DATE_WINDOW = "last-week"  # fallback "last-day" not verified
-THRESHOLD = 75
-MAX_CANDIDATES = 40
-CHUNK = 15
+DEFAULT_QUERIES = ["KI Sichtbarkeit ChatGPT", "Generative Engine Optimization", "KI Marketing Automation", "AI Visibility Agentur"]
+DATE_WINDOW = "last-week"
+THRESHOLD = int(os.environ.get("JOBI_SCORE_THRESHOLD", "75"))
+MAX_CANDIDATES = 80
+CHUNK = 8
 LI_HOME = "https://www.linkedin.com"
+CONV_MAX_AGE_H = 36
+HIRE_MAX_AGE_H = 7 * 24
+MENTION_POOL = 4
 
-DE_WORDS = {"der","die","das","und","ist","nicht","mit","fur","fur","auf","auch","noch","mehr","werden","eine","sich","uber","zur","zum","dem","den","bei","vom","kann","wie","wir","sie","sind","hat","für","über"}
+# ---------------- lang helpers (guardia de codigo, no prompt) ----------------
+
+DE_WORDS = {"der","die","das","und","ist","nicht","mit","fur","auf","auch","noch","mehr","werden","eine","sich","uber","zur","zum","dem","den","bei","vom","kann","wie","wir","sie","sind","hat","f\u00fcr","\u00fcber"}
 EN_WORDS = {"the","and","is","are","not","with","for","on","also","more","will","can","how","this","that","you","your","from","our","what","when"}
 ES_MARK = re.compile(r"[\u00bf\u00a1]|\b(cion|est\u00e1|c\u00f3mo|qu\u00e9|fascinante|interesante|tambi\u00e9n|empresa|marca|contenido|b\u00fasqueda)\b", re.I)
-DACH_HINTS = ["deutschland","germany","\u00f6sterreich","austria","schweiz","switzerland","hamburg","berlin","m\u00fcnchen","munich","k\u00f6ln","cologne","frankfurt","stuttgart","wien","vienna","z\u00fcrich","zurich","d\u00fcsseldorf","dusseldorf","gmbh","agentur","#dach","dach region","dach-markt",".de ",".at ",".ch "]
 
 
 def detect_lang(text):
@@ -52,21 +59,46 @@ def detect_lang(text):
     return "unknown"
 
 
-def region_ok(text, author, role):
-    hay = ((text or "") + " " + (author or "") + " " + (role or "")).lower()
-    if detect_lang(text[:800]) == "de":
-        return True
-    return any(h in hay for h in DACH_HINTS)
+DASH_RE = re.compile(r"[\u2014\u2013]")
+MENTION_RE = re.compile(r"GEO-Check|El Kiosk|elkiosk", re.I)
 
 
-PROMPT_RULES = """Eres el filtro de oportunidades de engagement de JOBI (Gabriel Lagos, Make Happen GmbH / El Kiosk, DACH).
-Para cada post, devuelve un objeto con:
-- "score" (0-100): oportunidad real de aportar valor a la conversacion. Alto = el post trata temas donde Gabriel tiene experiencia genuina (Generative Engine Optimization / AI visibility / SEO, KI-Marketing-automation, contenido, growth, agencias B2B, hiring de creativos/tech en DACH) Y hay hueco para un comentario sustantivo. Bajo = spam, promotion pura, off-topic, ya con 50+ comentarios de respuesta, o conversacion cerrada. REGION DACH (prioridad): alto solo si el autor o su empresa opera en DACH (Alemania/Austria/Suiza) O el post trata el mercado DACH — indicios: idioma aleman, empresa/ciudad/dominio .de/.at/.ch, hashtags de la region. Si es claramente otra region (Benelux, UK, US, Latam), pon score max 40 e is_relevant false.
-- "is_relevant": true solo si score >= 70.
-- "reason": una linea en espanol (max 120 caracteres).
-- "post_lang": idioma real del post, uno de "de", "en", "es", u otro codigo ISO corto. No generes ningun borrador aqui.
-Devuelve SOLO un array JSON con EXACTAMENTE un objeto por post, en el mismo orden de entrada, y en cada objeto incluye "url" con la URL tal cual la recibiste. Sin markdown."""
+def strip_dashes(text):
+    return DASH_RE.sub(", ", text or "")
 
+
+def has_mention(text):
+    return bool(MENTION_RE.search(text or ""))
+
+
+def norm_profile(u):
+    if not u:
+        return None
+    u = u.strip().rstrip("/")
+    m = re.match(r"https?://[^/]+/in/([^/?#]+)", u)
+    if m:
+        return "https://www.linkedin.com/in/" + m.group(1)
+    return u
+
+
+def age_hours_from_epoch(ts):
+    try:
+        return int((time.time() - int(ts)) / 3600)
+    except Exception:
+        return None
+
+
+def age_hours_from_iso(iso):
+    if not iso:
+        return None
+    try:
+        t = time.mktime(time.strptime(iso, "%Y-%m-%dT%H:%M:%SZ")) - time.timezone
+        return int((time.time() - t) / 3600)
+    except Exception:
+        return None
+
+
+# ---------------- env / http ----------------
 
 def env(path, key):
     try:
@@ -104,11 +136,137 @@ def http_json(url, headers, data=None, tries=3, timeout=90):
     raise last if last else RuntimeError("request failed")
 
 
+def parse_json_payload(content):
+    content = (content or "").strip()
+    content = re.sub(r"^```(json)?|```$", "", content, flags=re.M).strip()
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        m = re.search(r"\[.*\]", content, re.S) or re.search(r"\{.*\}", content, re.S)
+        if m:
+            try:
+                return json.loads(m.group(0))
+            except json.JSONDecodeError:
+                return None
+        return None
+
+
+def llm(user_prompt, orca, errors, tag, temperature=0.2):
+    try:
+        resp = http_json(
+            "https://api.orcarouter.ai/v1/chat/completions",
+            {"Content-Type": "application/json", "Authorization": f"Bearer {orca}"},
+            data={"model": "openai/gpt-4o-mini", "temperature": temperature, "messages": [{"role": "user", "content": user_prompt}]},
+        )
+        return resp["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        errors.append(f"{tag}: {e}")
+        return None
+
+
+# ---------------- prompts (brief verbatim) ----------------
+
+PROMPT_A = """Du bekommst mehrere LinkedIn-Posts zur Bewertung. Antworte NUR mit einem JSON-ARRAY (ein Objekt pro Post, in gleicher Reihenfolge, jedes Objekt mit dem zusaetzlichen Feld "url" exakt wie im Post). Ohne Markdown, ohne Text davor oder danach.
+
+Du bewertest LinkedIn-Posts f\u00fcr Gabriel Lagos (Hamburg, 20 Jahre Creative Direction,
+baut KI-Automationen, GEO-Check f\u00fcr KI-Sichtbarkeit und El Kiosk, Content-as-a-Service
+f\u00fcr KMU im DACH-Raum).
+
+JSON-Objekt pro Post:
+{
+  "post_type": "conversation" | "hiring" | "other",
+  "region_dach": true | false,
+  "region_signals": ["..."],
+  "language": "de" | "en" | "other",
+  "register": "du" | "sie" | "neutral",
+  "score": 0-100,
+  "angle": "buyer" | "expert" | "hiring_candidate" | "hiring_partner" | "none",
+  "reason": "max 1 Satz"
+}
+
+Regeln:
+- region_dach nur true bei klaren Signalen: Post auf Deutsch, .de/.at/.ch, GmbH/AG,
+  DACH-St\u00e4dte, Firmensitz im DACH-Raum. Im Zweifel false.
+- language = Sprache des Post-Textes, nicht des Profils.
+
+Score f\u00fcr "conversation":
++ Autor ist potenzieller K\u00e4ufer (Inhaber, GF, Marketing-Lead eines KMU/Mittelstands)
++ Thema: Sichtbarkeit, Content, KI im Marketing, Automatisierung, Traffic-Verlust
++ Gabriel kann einen konkreten, eigenen Punkt beitragen
++ Post hat Diskussion (Fragen, Meinungen), nicht nur Ank\u00fcndigung
+- Autor ist Agentur/Berater mit gleichem Angebot (max 60, au\u00dfer starkes Expert-Thema)
+- Reine Werbung, Event-Ank\u00fcndigung, Jobwechsel-Gl\u00fcckw\u00fcnsche: post_type "other"
+
+Score f\u00fcr "hiring":
++ Rolle \u00fcberschneidet sich mit: KI, Automatisierung, GEO/SEO, Content, Creative Direction,
+  Marketing, Enablement/Workshops
++ Remote, Hamburg oder Freelance/Teilzeit m\u00f6glich
++ Seniorit\u00e4tslevel passt (Lead, Head, Senior, Manager mit Gestaltungsspielraum)
+angle "hiring_candidate" wenn Gabriel als Person passt,
+"hiring_partner" wenn eher projektbasierte Unterst\u00fctzung durch eine Agentur Sinn ergibt."""
+
+PROMPT_B = """Schreib einen LinkedIn-Kommentar als Gabriel Lagos zu folgendem Post.
+
+Sprache: {language}. Exakt diese Sprache, niemals Spanisch.
+Anrede: {register}. Bei "neutral" ohne direkte Anrede schreiben.
+Erw\u00e4hnung erlaubt: {allow_mention}. Nur wenn true, darf GEO-Check oder El Kiosk
+EINMAL beil\u00e4ufig vorkommen, ohne Link, ohne Verkaufston.
+
+Regeln:
+- 2 bis 4 S\u00e4tze.
+- Ein konkreter eigener Punkt (Beobachtung, Erfahrung, Gegenposition),
+  kein Zusammenfassen des Posts.
+- Wenn es passt, eine echte Frage am Ende.
+- Verboten: "Toller Beitrag", "Spannend!", "Danke f\u00fcrs Teilen", Emojis am Anfang,
+  Hashtags, Gedankenstriche (Unicode U+2014 und U+2013).
+- Bei Schweizer Post: "ss" statt "\u00df".
+- Keine Fakten erfinden, keine Kundennamen.
+
+Post:
+{post_text}
+
+Gib nur den Kommentartext aus."""
+
+PROMPT_C = """Erstelle f\u00fcr Gabriel Lagos zu folgendem Stellen-Post zwei Texte, in Sprache {language}
+und Anrede {register}. Winkel: {angle}.
+
+1. "dm": Direktnachricht an die Person, die gepostet hat. Max 4 S\u00e4tze.
+   - hiring_candidate: Bezug auf 1 bis 2 konkrete Anforderungen aus dem Post,
+     Gabriels passende Praxis (KI-Automationen, GEO-Check, 20 Jahre Creative Direction),
+     Frage ob Freelance oder Teilzeit denkbar ist. make happen NICHT in den Vordergrund.
+   - hiring_partner: Angebot, das Thema projektbasiert \u00fcber make happen abzudecken,
+     bis die Stelle besetzt ist. Kleine Frage als CTA (kurzer Austausch mit dem Team-Lead).
+     Keine Bewerber-Formulierungen in diesem Winkel (kein persoenliches Freelance/Teilzeit,
+     kein "ich als Kandidat"), nur die Unterstuetzung durch make happen.
+2. "comment": optional, max 1 Satz, oder leer lassen, wenn ein Kommentar nichts bringt.
+3. "company": Firma des Stellenangebots. Steht oft in eckigen Klammern am Ende
+   oder nach "Job:"/"Stelle:" im Post (z.B. "[Job: Titel, Firma]"). Sonst "".
+4. "role": Jobtitel der Stelle aus dem Post (sonst "").
+
+Keine Gedankenstriche, keine erfundenen Fakten.
+
+Post:
+{post_text}
+
+Antworte NUR mit JSON: {"dm": "...", "comment": "...", "company": "...", "role": "..."}"""
+
+# ---------------- keywords desde DB ----------------
+
+def load_keywords(supa_get, errors):
+    try:
+        rows = supa_get("/rest/v1/linkedin_keywords?select=query,lane&active=eq.true&order=query")
+        if rows:
+            return [(r["query"], r.get("lane") or "expert") for r in rows]
+    except Exception as e:
+        errors.append(f"keywords: {e}")
+    return [(q, "expert") for q in DEFAULT_QUERIES]
+
+
 # ---------------- candidates: keyword search via treg ----------------
 
-def fetch_keyword_posts(errors):
+def fetch_keyword_posts(qlist, errors, stats):
     candidates = []
-    for q in QUERIES:
+    for q, lane in qlist:
         try:
             r = subprocess.run(
                 ["treg", "call", "anyapi.linkedin.search.posts", "--data", json.dumps({"query": q, "datePosted": DATE_WINDOW}), "--json"],
@@ -118,18 +276,23 @@ def fetch_keyword_posts(errors):
             posts = (d.get("output") or {}).get("data", {}).get("posts", [])
         except Exception as e:
             errors.append(f"treg '{q}': {e}")
+            stats[q] = {"results": 0, "passed_dach": 0}
             continue
+        stats[q] = {"results": len(posts), "passed_dach": 0}
         for p in posts:
             if not p.get("url"):
                 continue
             candidates.append({
                 "url": p["url"],
                 "author": p.get("authorName") or "",
+                "author_url": norm_profile(p.get("authorUrl")),
                 "role": "",
                 "text": (p.get("text") or "")[:8000],
                 "source": "keyword",
                 "keyword": q,
+                "lane": lane,
                 "posted_at": epoch_to_iso(p.get("createdUtc")),
+                "age_hours": age_hours_from_epoch(p.get("createdUtc")),
             })
     return candidates
 
@@ -145,8 +308,8 @@ def epoch_to_iso(ts):
 
 # ---------------- candidates: feed dump from LinkedIn MCP ----------------
 
-TIME_RE = re.compile(r"^\s*(\d+)([hdw])\s*•")
-DEGREE_RE = re.compile(r"•\s*(2nd|3rd\+?|1st)")
+TIME_RE = re.compile(r"^\s*(\d+)([hdw])\s*\u2022")
+DEGREE_RE = re.compile(r"\u2022\s*(2nd|3rd\+?|1st)")
 
 
 def _norm(s):
@@ -163,7 +326,6 @@ def _common_prefix(a, b):
 
 
 def _slug_author(slug):
-    # slug like 'firstname-lastname_topic-words-share-123-abc'
     body = slug.split("?")[0]
     core = re.split(r"-(?:share|ugcPost|activity)-\d+", body)[0]
     if "_" in core:
@@ -275,11 +437,14 @@ def parse_feed_dump(path, errors):
         candidates.append({
             "url": LI_HOME + "/posts/" + slug,
             "author": author,
+            "author_url": None,
             "role": " ".join(role_parts)[:300],
             "text": text[:8000],
             "source": "feed",
             "keyword": None,
+            "lane": None,
             "posted_at": posted_at,
+            "age_hours": age_hours_from_iso(posted_at),
         })
     return candidates
 
@@ -290,65 +455,25 @@ def rel_to_iso(n, unit):
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - delta))
 
 
-# ---------------- scoring ----------------
+# ---------------- Prompt A: clasificador ----------------
 
-DRAFT_RULES = """Write ONE LinkedIn comment for a post. TARGET LANGUAGE: {lang_name} ({lang}). The comment MUST be written entirely in {lang_name} — hard rule, even if the post author is German or works for a German company.
-You comment as JOBI (Gabriel Lagos, Make Happen GmbH / El Kiosk, DACH).
-Hard rules: 1) start with real concrete value (fact, nuance, experience), 2) never sound like marketing, 3) mention GEO-Check / El Kiosk ONLY if it fits naturally and almost never (max 1 of 5), 4) no em dash or en dash, 5) 150-350 characters, 6) end with a short question or a strong point, 7) reference something specific from the post.
-Reply ONLY with JSON: {"comment_draft": "..."} where the comment is in {lang_name}. No markdown."""
-
-
-def llm_draft(post, author, role, lang, api_key, errors):
-    lang_name = {"en": "English", "de": "German"}.get(lang, lang)
-    user = DRAFT_RULES.replace("{lang_name}", lang_name).replace("{lang}", lang) + f"\n\nAuthor: {author} {role}\nPost:\n{post[:3000]}"
-    try:
-        resp = http_json(
-            "https://api.orcarouter.ai/v1/chat/completions",
-            {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-            data={"model": "openai/gpt-4o-mini", "temperature": 0.2, "messages": [{"role": "user", "content": user}]},
-        )
-        content = resp["choices"][0]["message"]["content"].strip()
-        m = re.search(r"\{.*\}", content, re.S)
-        return (json.loads(m.group(0)) if m else {}).get("comment_draft")
-    except Exception as e:
-        errors.append(f"draft {author}: {e}")
-        return None
-
-
-def llm_score(candidates, api_key, errors):
+def llm_classify(candidates, orca, errors):
     results = {}
     for i in range(0, len(candidates), CHUNK):
         chunk = candidates[i : i + CHUNK]
         posts = "\n\n".join(
-            f"URL: {c['url']}\nAutor: {c.get('author','')} {c.get('role','')}\nPost:\n{c['text'][:3000]}"
+            f"URL: {c['url']}\nAutor: {c.get('author', '')}\nPost:\n{c['text'][:2500]}"
             for c in chunk
         )
-        try:
-            resp = http_json(
-                "https://api.orcarouter.ai/v1/chat/completions",
-                {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-                data={
-                    "model": "openai/gpt-4o-mini",
-                    "temperature": 0.2,
-                    "messages": [
-                        {"role": "user", "content": PROMPT_RULES + "\n\nPosts:\n" + posts},
-                    ],
-                },
-            )
-            content = resp["choices"][0]["message"]["content"]
-        except Exception as e:
-            errors.append(f"llm chunk {i}: {e}")
+        content = llm(PROMPT_A + "\n\nPOSTS:\n" + posts, orca, errors, f"classify chunk {i}")
+        if content is None:
             continue
-        try:
-            items = json.loads(content)
-        except json.JSONDecodeError:
-            m = re.search(r"\[.*\]", content, re.S)
-            try:
-                items = json.loads(m.group(0)) if m else []
-            except Exception:
-                items = []
+        items = parse_json_payload(content)
         if isinstance(items, dict):
             items = [items]
+        if not isinstance(items, list):
+            errors.append(f"classify chunk {i}: JSON ilegible")
+            continue
         input_urls = [c["url"] for c in chunk]
         for idx, it in enumerate(items):
             if not isinstance(it, dict):
@@ -359,6 +484,99 @@ def llm_score(candidates, api_key, errors):
             if url:
                 results[url] = it
     return results
+
+
+# ---------------- Prompt B: comentario (conversation) ----------------
+
+def llm_comment(c, lang, register, allow_mention, orca, errors):
+    user = (
+        PROMPT_B
+        .replace("{language}", lang)
+        .replace("{register}", register)
+        .replace("{allow_mention}", "true" if allow_mention else "false")
+        .replace("{post_text}", (c.get("text") or "")[:3000])
+    )
+    out = llm(user, orca, errors, f"comment {c.get('author')}")
+    if not out:
+        return None
+    out = re.sub(r"^```[a-z]*\n?|```$", "", out.strip(), flags=re.M).strip()
+    return out or None
+
+
+# ---------------- Prompt C: DMs (hiring) ----------------
+
+def llm_hiring(c, lang, register, angle, orca, errors):
+    user = (
+        PROMPT_C
+        .replace("{language}", lang)
+        .replace("{register}", register)
+        .replace("{angle}", angle)
+        .replace("{post_text}", (c.get("text") or "")[:3000])
+    )
+    content = llm(user, orca, errors, f"dm {angle} {c.get('author')}")
+    if content is None:
+        return None
+    data = parse_json_payload(content)
+    if not isinstance(data, dict) or not data.get("dm"):
+        return None
+    return data
+
+
+# ---------------- reglas duras ----------------
+
+def allow_mention_flag(supa_get, errors):
+    try:
+        rows = supa_get(
+            f"/rest/v1/linkedin_engagements?select=mention_used&status=eq.approved"
+            f"&post_type=eq.conversation&order=created_at.desc&limit={MENTION_POOL}"
+        )
+        return not any(r.get("mention_used") for r in rows)
+    except Exception as e:
+        errors.append(f"mention pool: {e}")
+        return False
+
+
+def days_ago_iso(days):
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - days * 86400))
+
+
+def recent_author_sets(supa_get, errors):
+    urls, names = set(), set()
+    try:
+        rows = supa_get(
+            "/rest/v1/linkedin_engagements?select=author_profile_url,author_name"
+            "&created_at=gte." + days_ago_iso(7)
+        )
+        for r in rows:
+            if r.get("author_profile_url"):
+                urls.add(r["author_profile_url"].rstrip("/"))
+            if r.get("author_name"):
+                names.add(r["author_name"].strip().lower())
+    except Exception as e:
+        errors.append(f"author dedup engagements: {e}")
+    try:
+        rows = supa_get(
+            "/rest/v1/outreach_contacts?select=contacto_linkedin,contacto_nombre,fuente"
+            "&fuente=eq.linkedin&created_at=gte." + days_ago_iso(7)
+        )
+        for r in rows:
+            if r.get("contacto_linkedin"):
+                urls.add(r["contacto_linkedin"].rstrip("/"))
+            if r.get("contacto_nombre"):
+                names.add(r["contacto_nombre"].strip().lower())
+    except Exception as e:
+        errors.append(f"author dedup contacts: {e}")
+    return urls, names
+
+
+def existing_job_links(supa_get, errors):
+    links = set()
+    try:
+        rows = supa_get("/rest/v1/outreach_contacts?select=job_link&job_link=not.is.null")
+        links = {r["job_link"] for r in rows if r.get("job_link")}
+    except Exception as e:
+        errors.append(f"job_link dedup: {e}")
+    return links
 
 
 # ---------------- main ----------------
@@ -376,19 +594,6 @@ def main():
         print(json.dumps({"error": "missing env"}))
         sys.exit(1)
 
-    candidates = fetch_keyword_posts(errors)
-    if args.feed_dump:
-        candidates += parse_feed_dump(args.feed_dump, errors)
-
-    # dedupe among themselves
-    seen, uniq = set(), []
-    for c in candidates:
-        if c["url"] not in seen:
-            seen.add(c["url"])
-            uniq.append(c)
-    candidates = uniq[:MAX_CANDIDATES]
-
-    # dedupe against DB
     def supa_get(path):
         req = urllib.request.Request(
             supa_url + path, headers={"apikey": supa_key, "Authorization": f"Bearer {supa_key}"}
@@ -396,70 +601,10 @@ def main():
         with urllib.request.urlopen(req, timeout=30) as r:
             return json.load(r)
 
-    existing_rows = supa_get("/rest/v1/linkedin_engagements?select=post_url,dedupe_key")
-    existing = set()
-    for r in existing_rows:
-        for k in (r.get("post_url"), r.get("dedupe_key")):
-            if k:
-                existing.add(k)
-    fresh = [c for c in candidates if c["url"] not in existing]
-
-    digest = {
-        "scanned": len(candidates),
-        "already_in_db": len(candidates) - len(fresh),
-        "new": len(fresh),
-        "inserted": 0,
-        "dry_run": args.dry_run,
-        "errors": errors,
-        "rows": [],
-    }
-    if not fresh:
-        print(json.dumps(digest, ensure_ascii=False))
-        return
-
-    scores = llm_score(fresh, orca, errors)
-    to_insert = []
-    dropped = []
-    for c in fresh:
-        s = scores.get(c["url"])
-        if not s:
-            continue
-        score = int(s.get("score") or 0)
-        if score >= THRESHOLD and s.get("is_relevant"):
-            pl = (s.get("post_lang") or "").lower()[:2]
-            if pl not in ("de", "en"):
-                pl = detect_lang((c.get("text") or "")[:800])
-            if not region_ok(c.get("text") or "", c.get("author") or "", c.get("role") or ""):
-                dropped.append({"author": c.get("author"), "reason": "no_dach_region", "score": score})
-                continue
-            if pl not in ("de", "en"):
-                dropped.append({"author": c.get("author"), "reason": f"lang_invalid post={pl}", "score": score})
-                continue
-            draft = llm_draft(c.get("text") or "", c.get("author") or "", c.get("role") or "", pl, orca, errors)
-            dl = detect_lang(draft or "")
-            if not draft or dl != pl:
-                dropped.append({"author": c.get("author"), "reason": f"draft_lang post={pl} draft={dl}", "score": score})
-                continue
-            to_insert.append({
-                "author_name": (c.get("author") or "")[:200],
-                "author_role": (c.get("role") or "")[:300],
-                "post_url": c["url"],
-                "dedupe_key": c["url"],
-                "post_text": (c.get("text") or "")[:20000],
-                "post_summary": (s.get("reason") or "")[:500],
-                "source": c.get("source") or "keyword",
-                "keyword": c.get("keyword"),
-                "score": max(0, min(100, score)),
-                "status": "pending_approval",
-                "comment_draft": draft[:2000],
-                "posted_at": c.get("posted_at"),
-            })
-
-    inserted = []
-    if to_insert and not args.dry_run:
+    def supa_post(path, payload):
         req = urllib.request.Request(
-            supa_url + "/rest/v1/linkedin_engagements?on_conflict=dedupe_key",
-            data=json.dumps(to_insert).encode(),
+            supa_url + path,
+            data=json.dumps(payload).encode(),
             headers={
                 "apikey": supa_key,
                 "Authorization": f"Bearer {supa_key}",
@@ -468,22 +613,242 @@ def main():
             },
             method="POST",
         )
-        try:
-            with urllib.request.urlopen(req, timeout=60) as r:
-                raw = r.read().decode()
-                inserted = json.loads(raw) if raw else []
-        except urllib.error.HTTPError as e:
-            errors.append(f"insert HTTP {e.code}: {e.read().decode()[:500]}")
-        except Exception as e:
-            errors.append(f"insert: {e}")
+        with urllib.request.urlopen(req, timeout=60) as r:
+            raw = r.read().decode()
+            return json.loads(raw) if raw else []
 
-    digest["inserted"] = len(inserted)
-    digest["dropped"] = dropped
+    qlist = load_keywords(supa_get, errors)
+    stats = {}
+    candidates = fetch_keyword_posts(qlist, errors, stats)
+    if args.feed_dump:
+        candidates += parse_feed_dump(args.feed_dump, errors)
+
+    # dedupe entre si (URL)
+    seen, uniq = set(), []
+    for c in candidates:
+        if c["url"] not in seen:
+            seen.add(c["url"])
+            uniq.append(c)
+    candidates = uniq
+
+    dropped = []
+
+    # antiguedad inicial: 7 dias (el corte de 36h para conversation va despues del clasificador)
+    age_ok = []
+    for c in candidates:
+        ah = c.get("age_hours")
+        if ah is not None and ah > HIRE_MAX_AGE_H:
+            dropped.append({"author": c.get("author"), "reason": f"too_old {ah}h"})
+        else:
+            age_ok.append(c)
+    candidates = age_ok
+
+    # dedupe contra DB: post + autor (7 dias)
+    try:
+        existing_rows = supa_get("/rest/v1/linkedin_engagements?select=post_url,dedupe_key")
+    except Exception as e:
+        existing_rows = []
+        errors.append(f"db dedup: {e}")
+    existing = set()
+    for r in existing_rows:
+        for k in (r.get("post_url"), r.get("dedupe_key")):
+            if k:
+                existing.add(k)
+    fresh = [c for c in candidates if c["url"] not in existing]
+    db_urls, db_names = recent_author_sets(supa_get, errors)
+    jobs_seen = existing_job_links(supa_get, errors)
+
+    not_dup = []
+    for c in fresh:
+        a_url = c.get("author_url")
+        a_name = (c.get("author") or "").strip().lower()
+        if (a_url and a_url.rstrip("/") in db_urls) or (not a_url and a_name and a_name in db_names):
+            dropped.append({"author": c.get("author"), "reason": "author_dup_7d"})
+            continue
+        if c["url"] in jobs_seen:
+            dropped.append({"author": c.get("author"), "reason": "job_link_exists"})
+            continue
+        not_dup.append(c)
+    fresh = not_dup[:MAX_CANDIDATES]
+
+    digest = {
+        "scanned": len(candidates),
+        "keywords": len(qlist),
+        "new": len(fresh),
+        "conversation_inserted": 0,
+        "hiring_inserted": 0,
+        "dry_run": args.dry_run,
+        "dropped": dropped,
+        "errors": errors,
+        "rows_conv": [],
+        "rows_hire": [],
+    }
+    if not fresh:
+        digest["stats"] = stats
+        digest["keywords_zero"] = [q for q, s in stats.items() if s["results"] == 0]
+        print(json.dumps(digest, ensure_ascii=False, indent=1))
+        return
+
+    classes = llm_classify(fresh, orca, errors)
+
+    mention_ok = allow_mention_flag(supa_get, errors)
+
+    for c in fresh:
+        cl = classes.get(c["url"])
+        if not isinstance(cl, dict):
+            dropped.append({"author": c.get("author"), "reason": "no_classification"})
+            continue
+        if c.get("keyword") and bool(cl.get("region_dach")) and c["keyword"] in stats:
+            stats[c["keyword"]]["passed_dach"] += 1
+        ptype = (cl.get("post_type") or "").strip()
+        score = int(cl.get("score") or 0)
+        region = bool(cl.get("region_dach"))
+        lang = (cl.get("language") or "").lower()[:5]
+        register = (cl.get("register") or "neutral").strip()
+        angle = (cl.get("angle") or "none").strip()
+        reason = (cl.get("reason") or "").strip()
+        signals = cl.get("region_signals") if isinstance(cl.get("region_signals"), list) else []
+        ah = c.get("age_hours")
+
+        if ptype not in ("conversation", "hiring"):
+            dropped.append({"author": c.get("author"), "reason": f"post_type={ptype or '?'}", "score": score})
+            continue
+        if not region:
+            dropped.append({"author": c.get("author"), "reason": "region_not_dach", "score": score})
+            continue
+        if score < THRESHOLD:
+            dropped.append({"author": c.get("author"), "reason": f"score<{THRESHOLD}", "score": score})
+            continue
+        if lang not in ("de", "en"):
+            dropped.append({"author": c.get("author"), "reason": f"language={lang or '?'}", "score": score})
+            continue
+        if ptype == "conversation" and ah is not None and ah > CONV_MAX_AGE_H:
+            dropped.append({"author": c.get("author"), "reason": f"conv_too_old {ah}h", "score": score})
+            continue
+
+        if ptype == "conversation":
+            status = "pending"
+            draft = llm_comment(c, lang, register, mention_ok, orca, errors)
+            if draft and has_mention(draft) and not mention_ok:
+                draft = llm_comment(c, lang, register, False, orca, errors)
+            if not draft:
+                dropped.append({"author": c.get("author"), "reason": "comment_failed", "score": score})
+                continue
+            draft = strip_dashes(draft)[:2000]
+            if detect_lang(draft) != lang:
+                draft2 = llm_comment(c, lang, register, mention_ok, orca, errors)
+                draft2 = strip_dashes(draft2 or "")[:2000]
+                if draft2 and detect_lang(draft2) == lang:
+                    draft = draft2
+                else:
+                    status = "needs_review"
+            mention = has_mention(draft)
+            if mention and not mention_ok and status != "needs_review":
+                status = "needs_review"
+            row = {
+                "author_name": (c.get("author") or "")[:200],
+                "author_role": (c.get("role") or "")[:300],
+                "post_url": c["url"],
+                "dedupe_key": c["url"],
+                "post_text": (c.get("text") or "")[:20000],
+                "post_summary": reason[:500],
+                "source": c.get("source") or "keyword",
+                "keyword": c.get("keyword"),
+                "score": max(0, min(100, score)),
+                "status": status,
+                "comment_draft": draft,
+                "posted_at": c.get("posted_at"),
+                "post_type": "conversation",
+                "angle": angle,
+                "language": lang,
+                "register": register,
+                "region_signals": signals,
+                "score_reason": reason[:500],
+                "author_profile_url": c.get("author_url"),
+                "post_age_hours": ah,
+                "mention_used": mention,
+            }
+            digest["rows_conv"].append({"score": row["score"], "author": row["author_name"], "url": row["post_url"], "status": status, "draft": draft})
+            if not args.dry_run:
+                try:
+                    supa_post("/rest/v1/linkedin_engagements?on_conflict=dedupe_key", [row])
+                    digest["conversation_inserted"] += 1
+                except urllib.error.HTTPError as e:
+                    errors.append(f"insert conv {row['author_name']}: {e.code} {e.read().decode()[:300]}")
+                except Exception as e:
+                    errors.append(f"insert conv: {e}")
+
+        elif ptype == "hiring":
+            dm_c = llm_hiring(c, lang, register, "hiring_candidate", orca, errors)
+            dm_p = llm_hiring(c, lang, register, "hiring_partner", orca, errors)
+            if not dm_c or not dm_p:
+                dropped.append({"author": c.get("author"), "reason": "dm_generation_failed", "score": score})
+                continue
+            dm_c_text = strip_dashes(dm_c.get("dm") or "")[:4000]
+            dm_p_text = strip_dashes(dm_p.get("dm") or "")[:4000]
+            comment = strip_dashes(dm_c.get("comment") or dm_p.get("comment") or "")[:1000]
+            if detect_lang(dm_c_text) != lang or detect_lang(dm_p_text) != lang:
+                dm_c2 = llm_hiring(c, lang, register, "hiring_candidate", orca, errors)
+                if dm_c2:
+                    t = strip_dashes(dm_c2.get("dm") or "")[:4000]
+                    if detect_lang(t) == lang:
+                        dm_c_text = t
+            if detect_lang(dm_c_text) != lang or detect_lang(dm_p_text) != lang:
+                dropped.append({"author": c.get("author"), "reason": f"dm_lang_fail want={lang}", "score": score})
+                continue
+            company = (dm_c.get("company") or dm_p.get("company") or "").strip()
+            role = (dm_c.get("role") or dm_p.get("role") or "").strip()
+            row = {
+                "empresa": (company or c.get("author") or "LinkedIn")[:200],
+                "cargo": (role or "Stelle laut LinkedIn-Post")[:300],
+                "job_link": c["url"],
+                "contacto_nombre": (c.get("author") or "")[:200],
+                "contacto_linkedin": c.get("author_url"),
+                "estado": "Nuevo",
+                "fuente": "linkedin",
+                "hipotesis": reason[:600],
+                "score": max(0, min(100, score)),
+                "reason": reason[:500],
+                "draft_dm_candidate": dm_c_text,
+                "draft_dm_partner": dm_p_text,
+                "draft_comment": comment,
+            }
+            digest["rows_hire"].append({"score": row["score"], "author": row["contacto_nombre"], "empresa": row["empresa"], "cargo": row["cargo"], "url": row["job_link"]})
+            if not args.dry_run:
+                try:
+                    supa_post("/rest/v1/outreach_contacts", [row])
+                    digest["hiring_inserted"] += 1
+                except urllib.error.HTTPError as e:
+                    errors.append(f"insert hire {row['empresa']}: {e.code} {e.read().decode()[:300]}")
+                except Exception as e:
+                    errors.append(f"insert hire: {e}")
+
+    # stats por keyword
+    digest["stats"] = stats
+    digest["keywords_zero"] = [q for q, s in stats.items() if s["results"] == 0]
+    if not args.dry_run:
+        try:
+            payload = [
+                {"day": time.strftime("%Y-%m-%d"), "query": q, "results": s["results"], "passed_dach": s["passed_dach"]}
+                for q, s in stats.items()
+            ]
+            req = urllib.request.Request(
+                supa_url + "/rest/v1/linkedin_keyword_stats?on_conflict=day,query",
+                data=json.dumps(payload).encode(),
+                headers={
+                    "apikey": supa_key,
+                    "Authorization": f"Bearer {supa_key}",
+                    "Content-Type": "application/json",
+                    "Prefer": "resolution=merge-duplicates",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=30):
+                pass
+        except Exception as e:
+            errors.append(f"stats upsert: {e}")
+
     digest["errors"] = errors
-    digest["rows"] = [
-        {"score": row["score"], "author": row["author_name"], "url": row["post_url"], "draft": row["comment_draft"]}
-        for row in (inserted or to_insert)
-    ]
     print(json.dumps(digest, ensure_ascii=False, indent=1))
 
 
