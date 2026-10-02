@@ -16,6 +16,7 @@ treg anyapi.linkedin.search.posts -> output.data.posts[]:
   {authorName, authorUrl, url, text, createdUtc (unix secs), reactionCount, commentCount, id}
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import re
@@ -29,6 +30,46 @@ DEFAULT_QUERIES = ["KI Sichtbarkeit ChatGPT", "Generative Engine Optimization", 
 DATE_WINDOW = "last-week"
 THRESHOLD = int(os.environ.get("JOBI_SCORE_THRESHOLD", "75"))
 MAX_CANDIDATES = 300  # clasificar casi todo: evita sesgo de stats (passed_dach) por cap
+JEV_URL = "https://api.typesafe.ai/v1/systemone"
+JEV_MODEL = "jev-1.13.0"  # fijado, NO jev-latest
+MIN_REACTIONS = int(os.environ.get("JOBI_MIN_REACTIONS", "5"))
+MIN_COMMENTS = int(os.environ.get("JOBI_MIN_COMMENTS", "1"))
+MAX_PAGES = int(os.environ.get("JOBI_MAX_PAGES", "3"))
+SCORE_ANCHORS = ["0 gar nicht geeignet", "1", "2", "3", "4 mittel", "5", "6", "7", "8", "9 perfekt geeignet"]
+BUYER_BONUS = {"kmu_entscheider": 1, "marketing_lead": 1, "agentur_berater": 0.5, "recruiter_hr": 0, "sonstige": 0}
+ANGLE_BY_AUTHOR = {"kmu_entscheider": "buyer", "marketing_lead": "buyer", "agentur_berater": "expert", "recruiter_hr": "none", "sonstige": "none"}
+
+JEV_QUESTIONS = {
+    "post_type": {"type": "choice",
+        "instructions": "Ist der Post eine inhaltliche Diskussion, eine Stellenanzeige/Suche nach Personen, oder etwas anderes (Werbung, Event, Glueckwunsch, Firmennews)?",
+        "criteria": {"conversation": "Inhaltliche Diskussion mit Fragen oder Meinungen",
+                     "hiring": "Stellenanzeige oder Suche nach Personen",
+                     "other": "Werbung, Event, Glueckwunsch, Firmennews"}},
+    "geo_topic": {"type": "noul",
+        "instructions": "Geht es im Post explizit um die Sichtbarkeit von Marken oder Unternehmen in KI-Antworten (ChatGPT, Perplexity, Gemini, AI Overviews) oder um GEO (Generative Engine Optimization)?"},
+    "adjacent_topic": {"type": "noul",
+        "instructions": "Geht es explizit um KI im Marketing, Content-Erstellung mit KI oder Marketing-Automatisierung?"},
+    "author_type": {"type": "choice", "instructions": "Welcher Autortyp?",
+        "criteria": {"kmu_entscheider": "Inhaber, Gesellschafter, Entscheider eines KMU",
+                     "marketing_lead": "Marketing-Lead oder Marketing-Verantwortlicher",
+                     "agentur_berater": "Agentur oder Berater mit aehnlichem Angebot",
+                     "recruiter_hr": "Recruiter oder HR", "sonstige": "Sonstige"}},
+    "region_dach": {"type": "noul",
+        "instructions": "Stammt Autor oder Unternehmen klar aus Deutschland, Oesterreich oder der Schweiz? Hinweis: Der Posttext kann Sprachhinweise liefern."},
+    "language": {"type": "choice", "instructions": "Sprache des Post-Textes?",
+        "criteria": {"de": "Deutsch", "en": "Englisch", "other": "Andere"}},
+    "register": {"type": "choice", "instructions": "Welche Anrede passt zum Autor?",
+        "criteria": {"du": "Du-Form", "sie": "Sie-Form", "neutral": "Keine direkte Anrede"}},
+    "discussion": {"type": "score",
+        "instructions": "Wie gut eignet sich der Post fuer einen fachlichen Kommentar mit eigener Meinung? Skala 0-100.",
+        "criteria": SCORE_ANCHORS},
+    "hiring_fit": {"type": "score",
+        "instructions": "Wie gut passt die Rolle zu: KI-Automatisierung, GEO/SEO, Content, Creative Direction? Skala 0-100.",
+        "criteria": SCORE_ANCHORS},
+    "hiring_angle": {"type": "choice", "instructions": "Welcher Winkel passt besser?",
+        "criteria": {"candidate": "Gabriel passt als Person (Freelance/Teilzeit)",
+                     "partner": "Projektbasierte Unterstuetzung durch make happen"}},
+}
 CHUNK = 8
 LI_HOME = "https://www.linkedin.com"
 CONV_MAX_AGE_H = 36
@@ -166,6 +207,142 @@ def llm(user_prompt, orca, errors, tag, temperature=0.2):
         return None
 
 
+# ---------------- Jev (scoring) ----------------
+
+def treg_search(params, errors, tag):
+    """treg search.posts robusto: reintenta y nunca truena con None."""
+    last = None
+    for _ in range(2):
+        try:
+            r = subprocess.run(
+                ["treg", "call", "anyapi.linkedin.search.posts", "--data", json.dumps(params), "--json"],
+                capture_output=True, text=True, timeout=120,
+            )
+            d = json.loads(r.stdout)
+            if not isinstance(d, dict):
+                raise ValueError("respuesta no-dict")
+            out = d.get("output")
+            data = (out or {}).get("data") if isinstance(out, dict) else None
+            if not isinstance(data, dict):
+                data = {}
+            posts = data.get("posts")
+            if not isinstance(posts, list):
+                posts = []
+            return posts, data.get("nextCursor")
+        except Exception as e:
+            last = e
+            time.sleep(2)
+    errors.append(f"treg {tag}: {last}")
+    return [], None
+
+
+def profile_headline(url, cache):
+    if not url:
+        return None
+    key = url.rstrip("/").split("/")[-1].lower()
+    if key in cache:
+        return cache[key]
+    hl = None
+    try:
+        r = subprocess.run(
+            ["treg", "call", "treg.linkedin.user.profile", "--data", json.dumps({"linkedin_url": url}), "--json"],
+            capture_output=True, text=True, timeout=60,
+        )
+        out = json.loads(r.stdout).get("output")
+        if isinstance(out, dict):
+            for k in ("headline", "title", "occupation"):
+                if out.get(k):
+                    hl = out[k]
+                    break
+            if not hl:
+                person = out.get("person") or out.get("profile") or {}
+                if isinstance(person, dict):
+                    for k in ("headline", "title", "occupation"):
+                        if person.get(k):
+                            hl = person[k]
+                            break
+    except Exception:
+        hl = None
+    cache[key] = hl
+    return hl
+
+
+def jev_evaluate(text, author, headline, key, errors):
+    """Una request por post -> answers con probabilidades crudas."""
+    if not key:
+        errors.append("jev: TYPESAFE_API_KEY aus")
+        return None
+    state = f"Post:\n{(text or '')[:6000]}\n\nAutor: {author or 'unbekannt'}\nTitel: {headline or 'unbekannt'}"
+    payload = {"state": state, "model": JEV_MODEL, "questions": JEV_QUESTIONS}
+    last = None
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(
+                JEV_URL, data=json.dumps(payload).encode(),
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}, method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=90) as resp:
+                d = json.load(resp)
+            answers = d.get("answers")
+            if isinstance(answers, dict) and answers.get("post_type"):
+                return answers
+            last = "answers incompletos"
+        except urllib.error.HTTPError as e:
+            last = f"HTTP {e.code}"
+            if e.code in (429, 500, 502, 503):
+                time.sleep(2 * (attempt + 1))
+                continue
+            break
+        except Exception as e:
+            last = str(e)
+            time.sleep(2)
+    errors.append(f"jev: {last}")
+    return None
+
+
+def score_from_jev(a):
+    """Reglas en codigo del brief: gates + score final."""
+    try:
+        t = a.get("post_type") or {}
+        ptype = t.get("choice")
+        p_other = float((t.get("probabilities") or {}).get("other", 0))
+        reg = float((a.get("region_dach") or {}).get("noul", 0))
+        geo = float((a.get("geo_topic") or {}).get("noul", 0))
+        adj = float((a.get("adjacent_topic") or {}).get("noul", 0))
+        lang = (a.get("language") or {}).get("choice") or "other"
+        register = (a.get("register") or {}).get("choice") or "neutral"
+        at = (a.get("author_type") or {}).get("choice") or "sonstige"
+        disc = float((a.get("discussion") or {}).get("score", 0)) / 9 * 100
+        fit = float((a.get("hiring_fit") or {}).get("score", 0)) / 9 * 100
+        ha = (a.get("hiring_angle") or {}).get("choice") or "candidate"
+    except Exception:
+        return {"discard": "jev_incomplete", "score": 0, "region_ok": False, "region_raw": 0.0,
+                "ptype": "?", "language": "?", "register": "neutral", "angle": "none", "reason": "parse"}
+
+    reason = f"{ptype} p_other={p_other:.2f} region={reg:.2f} topic={max(geo, 0.6 * adj):.2f} disc={disc:.0f} fit={fit:.0f}"
+    if ptype == "hiring":
+        score = round(fit)
+        angle = "hiring_candidate" if ha == "candidate" else "hiring_partner"
+    else:
+        topic = max(geo, 0.6 * adj)
+        score = round(100 * (0.6 * topic + 0.25 * disc / 100 + 0.15 * BUYER_BONUS.get(at, 0)))
+        angle = ANGLE_BY_AUTHOR.get(at, "none")
+
+    out = {"discard": None, "score": score, "region_ok": reg >= 0.7, "region_raw": reg,
+           "ptype": ptype, "language": lang, "register": register, "angle": angle, "reason": reason}
+    if p_other >= 0.6:
+        out["discard"] = "post_type_other"
+    elif reg < 0.7:
+        out["discard"] = "region<0.7"
+    elif lang not in ("de", "en"):
+        out["discard"] = f"language={lang}"
+    elif ptype != "hiring":
+        topic = max(geo, 0.6 * adj)
+        if topic < 0.6:
+            out["discard"] = "topic<0.6"
+    return out
+
+
 # ---------------- prompts (brief verbatim) ----------------
 
 PROMPT_A = """Du bekommst mehrere LinkedIn-Posts zur Bewertung. Antworte NUR mit einem JSON-ARRAY (ein Objekt pro Post, in gleicher Reihenfolge, jedes Objekt mit dem zusaetzlichen Feld "url" exakt wie im Post). Ohne Markdown, ohne Text davor oder danach.
@@ -284,24 +461,20 @@ def fetch_keyword_posts(qlist, errors, stats):
     candidates = []
     for q, lane in qlist:
         qq = q if q.startswith(chr(34)) else chr(34) + q + chr(34)
-        try:
-            r = subprocess.run(
-                ["treg", "call", "anyapi.linkedin.search.posts", "--data", json.dumps({"query": qq, "datePosted": DATE_WINDOW}), "--json"],
-                capture_output=True, text=True, timeout=120,
+        active_q = qq
+        posts, cur = treg_search({"query": active_q, "datePosted": DATE_WINDOW}, errors, q)
+        if not posts:
+            active_q = q
+            posts, cur = treg_search({"query": active_q, "datePosted": DATE_WINDOW}, errors, q + " unquoted")
+        pages = 1
+        while cur and pages < MAX_PAGES:
+            more, cur = treg_search(
+                {"query": active_q, "cursor": cur, "datePosted": DATE_WINDOW}, errors, f"{q} page{pages + 1}"
             )
-            d = json.loads(r.stdout)
-            posts = (d.get("output") or {}).get("data", {}).get("posts", [])
-            if not posts:
-                r = subprocess.run(
-                    ["treg", "call", "anyapi.linkedin.search.posts", "--data", json.dumps({"query": q, "datePosted": DATE_WINDOW}), "--json"],
-                    capture_output=True, text=True, timeout=120,
-                )
-                d = json.loads(r.stdout)
-                posts = (d.get("output") or {}).get("data", {}).get("posts", [])
-        except Exception as e:
-            errors.append(f"treg '{q}': {e}")
-            stats[q] = {"results": 0, "passed_dach": 0}
-            continue
+            if not more:
+                break
+            posts.extend(more)
+            pages += 1
         stats[q] = {"results": len(posts), "passed_dach": 0}
         for p in posts:
             if not p.get("url"):
@@ -317,6 +490,8 @@ def fetch_keyword_posts(qlist, errors, stats):
                 "lane": lane,
                 "posted_at": epoch_to_iso(p.get("createdUtc")),
                 "age_hours": age_hours_from_epoch(p.get("createdUtc")),
+                "reactions": p.get("reactionCount") if p.get("reactionCount") is not None else 0,
+                "comments": p.get("commentCount") if p.get("commentCount") is not None else 0,
             })
     return candidates
 
@@ -455,6 +630,10 @@ def parse_feed_dump(path, errors):
         text = "\n".join(text_lines).replace("\u2026 more", "").strip()
         if not text:
             continue
+        m_r = re.search(r"(\d[\d.,]*)\s*reactions?", block, re.I)
+        m_c = re.search(r"(\d[\d.,]*)\s*comments?", block, re.I)
+        reactions = int(re.sub(r"\D", "", m_r.group(1))) if m_r else None
+        comments_n = int(re.sub(r"\D", "", m_c.group(1))) if m_c else None
         slug = pick_ref(author, text)
         if not slug:
             continue  # no verified permalink: drop
@@ -469,6 +648,8 @@ def parse_feed_dump(path, errors):
             "lane": None,
             "posted_at": posted_at,
             "age_hours": age_hours_from_iso(posted_at),
+            "reactions": reactions,
+            "comments": comments_n,
         })
     return candidates
 
@@ -722,47 +903,57 @@ def main():
         print(json.dumps(digest, ensure_ascii=False, indent=1))
         return
 
-    classes = llm_classify(fresh, orca, errors)
-
     mention_ok = allow_mention_flag(supa_get, errors)
+    hl_cache = {}
+    typesafe_key = env("~/.hermes/CREDENTIALS_MASTER.env", "TYPESAFE_API_KEY")
+
+    # prefetch de titulares en paralelo (el secuencial era el cuello de botella)
+    def _eng_ok(c):
+        rc, cc = c.get("reactions"), c.get("comments")
+        if rc is None and cc is None:
+            return True
+        return (rc or 0) >= MIN_REACTIONS or (cc or 0) >= MIN_COMMENTS
+    uniq_urls = sorted({c.get("author_url") for c in fresh if c.get("author_url") and _eng_ok(c)})
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        list(ex.map(lambda u: profile_headline(u, hl_cache), uniq_urls))
 
     for c in fresh:
-        cl = classes.get(c["url"])
-        if not isinstance(cl, dict):
-            dropped.append({"author": c.get("author"), "reason": "no_classification"})
-            continue
-        if c.get("keyword") and bool(cl.get("region_dach")) and c["keyword"] in stats:
-            stats[c["keyword"]]["passed_dach"] += 1
-        ptype = (cl.get("post_type") or "").strip()
-        score = int(cl.get("score") or 0)
-        region = bool(cl.get("region_dach"))
-        lang = (cl.get("language") or "").lower()[:5]
-        register = (cl.get("register") or "neutral").strip()
-        angle = (cl.get("angle") or "none").strip()
-        reason = (cl.get("reason") or "").strip()
-        signals = cl.get("region_signals") if isinstance(cl.get("region_signals"), list) else []
-        ev = str(cl.get("evidence") or "").strip()
-        if not ev or re.sub(r"\s+", " ", ev) not in re.sub(r"\s+", " ", c.get("text") or ""):
-            score = 0
         ah = c.get("age_hours")
 
+        # gate de engagement (gratis, antes de Jev)
+        rc, cc = c.get("reactions"), c.get("comments")
+        if (rc is not None or cc is not None) and (rc or 0) < MIN_REACTIONS and (cc or 0) < MIN_COMMENTS:
+            dropped.append({"author": c.get("author"), "reason": f"low_engagement r={rc or 0} c={cc or 0}"})
+            continue
+
+        headline = profile_headline(c.get("author_url"), hl_cache)
+        answers = jev_evaluate(c.get("text"), c.get("author"), headline, typesafe_key, errors)
+        if not answers:
+            dropped.append({"author": c.get("author"), "reason": "jev_failed"})
+            continue
+
+        ev = score_from_jev(answers)
+        ptype = ev["ptype"]
+        score = ev["score"]
+        region = ev["region_ok"]
+        lang = ev["language"]
+        register = ev["register"]
+        angle = ev["angle"]
+        reason = ev["reason"]
+
+        if c.get("keyword") and c["keyword"] in stats and ev["region_raw"] >= 0.7:
+            stats[c["keyword"]]["passed_dach"] += 1
+        if ev["discard"]:
+            dropped.append({"author": c.get("author"), "reason": ev["discard"], "score": score})
+            continue
         if ptype == "hiring" and not HIRE_RE.search(c.get("text") or ""):
             dropped.append({"author": c.get("author"), "reason": "hiring_terms_missing", "score": score})
             continue
-        if ptype not in ("conversation", "hiring"):
-            dropped.append({"author": c.get("author"), "reason": f"post_type={ptype or '?'}", "score": score})
-            continue
-        if not region:
-            dropped.append({"author": c.get("author"), "reason": "region_not_dach", "score": score})
+        if ptype == "conversation" and ah is not None and ah > CONV_MAX_AGE_H:
+            dropped.append({"author": c.get("author"), "reason": f"conv_too_old {ah}h", "score": score})
             continue
         if score < THRESHOLD:
             dropped.append({"author": c.get("author"), "reason": f"score<{THRESHOLD}", "score": score})
-            continue
-        if lang not in ("de", "en"):
-            dropped.append({"author": c.get("author"), "reason": f"language={lang or '?'}", "score": score})
-            continue
-        if ptype == "conversation" and ah is not None and ah > CONV_MAX_AGE_H:
-            dropped.append({"author": c.get("author"), "reason": f"conv_too_old {ah}h", "score": score})
             continue
 
         if ptype == "conversation":
@@ -801,13 +992,14 @@ def main():
                 "angle": angle,
                 "language": lang,
                 "register": register,
-                "region_signals": signals,
+                "region_signals": ["jev_region=%.2f" % ev["region_raw"]],
                 "score_reason": reason[:500],
                 "author_profile_url": c.get("author_url"),
                 "post_age_hours": ah,
                 "mention_used": mention,
+                "jev_raw": answers,
             }
-            digest["rows_conv"].append({"score": row["score"], "author": row["author_name"], "url": row["post_url"], "status": status, "draft": draft})
+            digest["rows_conv"].append({"score": row["score"], "author": row["author_name"], "url": row["post_url"], "status": status, "draft": draft, "reactions": rc, "comments": cc})
             if not args.dry_run:
                 try:
                     supa_post("/rest/v1/linkedin_engagements?on_conflict=dedupe_key", [row])
@@ -829,9 +1021,9 @@ def main():
             if detect_lang(dm_c_text) != lang or detect_lang(dm_p_text) != lang:
                 dm_c2 = llm_hiring(c, lang, register, "hiring_candidate", orca, errors)
                 if dm_c2:
-                    t = strip_dashes(dm_c2.get("dm") or "")[:4000]
-                    if detect_lang(t) == lang:
-                        dm_c_text = t
+                    t2 = strip_dashes(dm_c2.get("dm") or "")[:4000]
+                    if detect_lang(t2) == lang:
+                        dm_c_text = t2
             if detect_lang(dm_c_text) != lang or detect_lang(dm_p_text) != lang:
                 dropped.append({"author": c.get("author"), "reason": f"dm_lang_fail want={lang}", "score": score})
                 continue
@@ -851,6 +1043,7 @@ def main():
                 "draft_dm_candidate": dm_c_text,
                 "draft_dm_partner": dm_p_text,
                 "draft_comment": comment,
+                "jev_raw": answers,
             }
             digest["rows_hire"].append({"score": row["score"], "author": row["contacto_nombre"], "empresa": row["empresa"], "cargo": row["cargo"], "url": row["job_link"]})
             if not args.dry_run:
