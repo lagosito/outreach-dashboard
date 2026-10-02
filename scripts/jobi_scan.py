@@ -28,7 +28,7 @@ import urllib.request
 
 DEFAULT_QUERIES = ["KI Sichtbarkeit ChatGPT", "Generative Engine Optimization", "KI Marketing Automation", "AI Visibility Agentur"]
 DATE_WINDOW = "last-week"
-THRESHOLD = int(os.environ.get("JOBI_SCORE_THRESHOLD", "75"))
+THRESHOLD = int(os.environ.get("JOBI_SCORE_THRESHOLD", "60"))  # umbral bajo activo (Gabriel, 2 oct); subir cuando pida
 MAX_CANDIDATES = 300  # clasificar casi todo: evita sesgo de stats (passed_dach) por cap
 JEV_URL = "https://api.typesafe.ai/v1/systemone"
 JEV_MODEL = "jev-1.13.0"  # fijado, NO jev-latest
