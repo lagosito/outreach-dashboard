@@ -1,0 +1,691 @@
+/* ============================================================
+   JOBI · Documentos (fase 3)
+   Plantillas A4 (595 × 842 pt) + deck 16:9 + panel de control.
+
+   Unidades: 1pt de CSS = 1/72in = 1 px del frame de Figma, así
+   las medidas de docs/jobi/content/*_reference.md se copian tal
+   cual y la impresión sale a tamaño real (A4 / 12in × 6.75in).
+
+   Space Grotesk (claim) y Karla (cuerpo) llegan de
+   next/font/google como --font-space-grotesk / --font-karla.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   Tipografías
+   ------------------------------------------------------------ */
+.docTitle,
+.docName,
+.blockLabel,
+.slideTitle {
+  /* TODO: GRIFTER (fuente de los títulos del CV en Figma) es una
+     licencia comercial y todavía no está instalada. Al añadirla
+     basta con dejarla primera de esta pila. */
+  font-family: GRIFTER, "Arial Black", Impact, sans-serif;
+  font-weight: 700;
+}
+.claim {
+  font-family: var(--font-space-grotesk), "Space Grotesk", "Helvetica Neue",
+    Arial, sans-serif;
+}
+
+/* ------------------------------------------------------------
+   Texto editable (Editable.tsx)
+   Sin borde en reposo; punteado tenue al pasar el ratón o al
+   enfocar. Nunca se reescribe el DOM mientras tiene foco.
+   ------------------------------------------------------------ */
+.ed {
+  outline: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.blk {
+  display: block;
+}
+.ed[data-ph]:empty::before {
+  content: attr(data-ph);
+  color: #9a97a8;
+  pointer-events: none;
+}
+.ed[contenteditable="true"] {
+  cursor: text;
+}
+.ed[contenteditable="true"]:hover,
+.ed[contenteditable="true"]:focus {
+  outline: 1px dotted rgba(91, 75, 214, 0.65);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Hoja A4 — CV y Anschreiben
+   ============================================================ */
+.sheet {
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  width: 595pt;
+  height: 842pt;
+  padding: 41pt 19pt 26pt 40pt;
+  background: #ffffff;
+  color: #181818;
+  font-family: var(--font-karla), Karla, "Helvetica Neue", Arial, sans-serif;
+  font-size: 8pt;
+  line-height: 1.6;
+  overflow: hidden;
+  box-shadow: 0 14px 36px rgba(16, 14, 30, 0.18);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.docName {
+  font-size: 18pt;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: #000000;
+  margin: 0;
+}
+.docClaim {
+  font-size: 9pt;
+  line-height: 1.55;
+  color: #676767;
+  margin: 2pt 0 0;
+}
+.blockLabel {
+  font-size: 9.5pt;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  color: #000000;
+  margin: 13pt 0 6pt;
+}
+.p {
+  margin: 0 0 5pt;
+  font-size: 7.5pt;
+  line-height: 1.68;
+}
+
+/* --- CV: cabecera + perfil a todo el ancho ------------------ */
+.cvProfile {
+  margin-top: 15pt;
+  max-width: 490pt;
+}
+.cvProfile .blockLabel {
+  margin-top: 0;
+}
+
+/* --- CV: dos columnas (300pt / resto, hueco 21pt) ----------- */
+.cvCols {
+  display: grid;
+  grid-template-columns: 300pt minmax(0, 1fr);
+  column-gap: 21pt;
+  align-items: start;
+}
+.exp {
+  display: flex;
+  flex-direction: column;
+  gap: 9pt;
+}
+.expEmpresa {
+  font-size: 8.5pt;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #000000;
+}
+.expMeta {
+  font-size: 7.2pt;
+  line-height: 1.45;
+  color: #3d3d3d;
+}
+.expMeta b {
+  font-weight: 700;
+  color: #000000;
+}
+.bullets {
+  margin: 3pt 0 0;
+  padding-left: 9pt;
+}
+.bullets li {
+  font-size: 7.2pt;
+  line-height: 1.5;
+  margin-bottom: 1.5pt;
+}
+.skill {
+  font-size: 7.2pt;
+  line-height: 1.5;
+  margin-bottom: 5pt;
+}
+.skill b {
+  font-weight: 700;
+  color: #000000;
+}
+.listLine {
+  font-size: 7.4pt;
+  line-height: 1.5;
+  margin-bottom: 3pt;
+}
+.contactLine {
+  font-size: 7.4pt;
+  line-height: 1.6;
+}
+
+/* --- Anschreiben: una columna de 515pt ---------------------- */
+.asContacto {
+  font-size: 7pt;
+  line-height: 1.5;
+  color: #181818;
+  margin-top: 5pt;
+}
+.asMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 20pt;
+  margin-top: 27pt;
+}
+.asEmpf {
+  width: 300pt;
+  font-size: 8pt;
+  line-height: 1.4;
+}
+.asOrt {
+  width: 200pt;
+  font-size: 8pt;
+  line-height: 1.4;
+  text-align: right;
+}
+.asBetreff {
+  margin-top: 30pt;
+  font-size: 9.5pt;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #141414;
+}
+.asCuerpo {
+  margin-top: 24pt;
+  font-size: 8.5pt;
+  line-height: 1.55;
+  color: #262626;
+}
+.asCuerpo p {
+  margin: 0 0 10pt;
+}
+.asDest {
+  margin: 0 0 10pt;
+}
+.asDestTit {
+  font-weight: 700;
+  margin-bottom: 3pt;
+}
+.asDest ul {
+  margin: 0;
+  padding-left: 12pt;
+}
+.asDest li {
+  font-size: 8.5pt;
+  line-height: 1.5;
+  margin-bottom: 2pt;
+}
+.asFirma {
+  margin-top: 12pt;
+}
+.asFirma div {
+  line-height: 1.4;
+}
+
+/* ============================================================
+   Deck make happen — slides 16:9 (1920 × 1080)
+   Escaladas a la vista con cqw (1cqw = 1% del ancho del slide),
+   así el mismo CSS sirve en pantalla y en la impresión.
+   ============================================================ */
+.deck {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+}
+.slideWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  container-type: inline-size;
+  overflow: hidden;
+  background: #0a0a0a;
+  color: #f4f1e8;
+  border-radius: 6px;
+  box-shadow: 0 14px 36px rgba(16, 14, 30, 0.18);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 3.4cqw;
+  font-family: var(--font-karla), Karla, "Helvetica Neue", Arial, sans-serif;
+}
+.slideHead,
+.slideFoot {
+  display: flex;
+  justify-content: space-between;
+  gap: 2cqw;
+  font-size: 0.8cqw;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(244, 241, 232, 0.62);
+}
+.slideBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.6cqw;
+  padding: 1.6cqw 0;
+  overflow: hidden;
+}
+.slideFoot {
+  margin-top: auto;
+}
+.slideTitle {
+  margin: 0;
+  line-height: 0.94;
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+  color: #f4f1e8;
+}
+.grid {
+  display: grid;
+  gap: 1.5cqw;
+}
+.card {
+  background: #f5f5f0;
+  color: #0a0a0a;
+  border-radius: 0.7cqw;
+  padding: 1.5cqw;
+}
+
+/* portada */
+.sPortada {
+  align-items: center;
+  text-align: center;
+}
+.sFuer {
+  font-size: 1.4cqw;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  border: 0.1cqw solid rgba(244, 241, 232, 0.45);
+  border-radius: 99px;
+  padding: 0.7cqw 1.8cqw;
+  color: #f4f1e8;
+}
+.sPortada .slideTitle {
+  font-size: 9.4cqw;
+}
+.sUnter {
+  font-size: 1.9cqw;
+  line-height: 1.35;
+  color: rgba(244, 241, 232, 0.82);
+  max-width: 64cqw;
+}
+
+/* quiénes somos */
+.sQuienes .slideTitle {
+  font-size: 6cqw;
+}
+.sTextos {
+  display: grid;
+  gap: 1.2cqw;
+  max-width: 76cqw;
+}
+.sTextos div {
+  font-size: 1.55cqw;
+  line-height: 1.5;
+  color: rgba(244, 241, 232, 0.9);
+}
+.sDatos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9cqw;
+}
+.sDatos > span {
+  font-size: 1.1cqw;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: #f5f5f0;
+  color: #0a0a0a;
+  border-radius: 99px;
+  padding: 0.55cqw 1.3cqw;
+}
+
+/* propuesta */
+.sPropuesta .slideTitle {
+  font-size: 5.6cqw;
+}
+.sParrafos div {
+  font-size: 1.6cqw;
+  line-height: 1.5;
+  color: rgba(244, 241, 232, 0.9);
+  margin-bottom: 0.9cqw;
+  max-width: 78cqw;
+}
+.sPuntos {
+  counter-reset: punto;
+  display: grid;
+  gap: 0.9cqw;
+}
+.sPuntos > div {
+  counter-increment: punto;
+  display: flex;
+  gap: 1.1cqw;
+  align-items: baseline;
+  font-size: 1.5cqw;
+  line-height: 1.4;
+}
+.sPuntos > div::before {
+  content: counter(punto, decimal-leading-zero);
+  font-weight: 700;
+  color: #f5f5f0;
+  background: rgba(244, 241, 232, 0.14);
+  border-radius: 6px;
+  padding: 0.25cqw 0.7cqw;
+  font-size: 1.1cqw;
+}
+
+/* servicios */
+.sServicios .slideTitle {
+  font-size: 3cqw;
+}
+.servicio {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9cqw;
+  height: 100%;
+}
+.servicio h3 {
+  margin: 0;
+  font-size: 2.1cqw;
+  line-height: 1.05;
+  font-weight: 700;
+}
+.servicio .desc {
+  font-size: 1.35cqw;
+  line-height: 1.4;
+  font-weight: 700;
+}
+.servicio ul {
+  margin: 0;
+  padding-left: 1.4cqw;
+}
+.servicio li {
+  font-size: 1.15cqw;
+  line-height: 1.45;
+  margin-bottom: 0.5cqw;
+}
+
+/* casos */
+.sCasos .slideTitle {
+  font-size: 3cqw;
+}
+.caso {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9cqw;
+}
+.casoImg {
+  width: 100%;
+  aspect-ratio: 615 / 430;
+  object-fit: cover;
+  border-radius: 0.6cqw;
+  background: #1a1a1a;
+  display: block;
+}
+.casoFallback {
+  width: 100%;
+  aspect-ratio: 615 / 430;
+  border-radius: 0.6cqw;
+  background: #f5f5f0;
+  color: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1cqw;
+  font-size: 1.4cqw;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.casoNombre {
+  font-size: 1.7cqw;
+  line-height: 1.15;
+  font-weight: 700;
+  color: #f5f5f0;
+}
+.casoCliente {
+  font-size: 0.95cqw;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(244, 241, 232, 0.6);
+}
+.casoDesc {
+  font-size: 1.1cqw;
+  line-height: 1.4;
+  color: rgba(244, 241, 232, 0.85);
+}
+
+/* contacto */
+.sContacto .slideTitle {
+  font-size: 8cqw;
+}
+.sLineas div {
+  font-size: 2.1cqw;
+  line-height: 1.6;
+  color: rgba(244, 241, 232, 0.92);
+}
+
+/* ============================================================
+   Panel de documentos (sección de la ficha)
+   ============================================================ */
+.docs {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.vacante {
+  width: 100%;
+  min-height: 132px;
+  resize: vertical;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: var(--surface);
+  line-height: 1.6;
+  font-size: var(--fs-base);
+}
+.vacante:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.docRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+.spin {
+  animation: docSpin 1s linear infinite;
+}
+@keyframes docSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.dMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+.chip:hover {
+  background: var(--surface-2);
+}
+.chip[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.hint {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+/* ============================================================
+   Modal de vista previa
+   ============================================================ */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(18, 16, 28, 0.62);
+  display: flex;
+  overflow: auto;
+  padding: 24px;
+}
+.modal {
+  width: min(1020px, 100%);
+  margin: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 30px 80px rgba(10, 8, 24, 0.45);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+}
+.mHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.mHead .eyebrow {
+  justify-content: flex-start;
+}
+.mActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: var(--bg);
+}
+.mBody > * {
+  max-width: 100%;
+}
+.mFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+/* ============================================================
+   Impresión — solo se imprime la copia portada a <body>
+   ============================================================ */
+.docPrint {
+  display: none;
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  :global(body) {
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+  /* Todo lo que no sea la copia de impresión se oculta. */
+  :global(body > *:not(.doc-print-root)) {
+    display: none !important;
+  }
+  .docPrint {
+    display: block !important;
+    width: 100%;
+  }
+  .sheet {
+    box-shadow: none;
+    margin: 0;
+    break-after: page;
+    page-break-after: always;
+  }
+  .sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  .deck {
+    gap: 0;
+  }
+  .slideWrap {
+    border-radius: 0;
+    box-shadow: none;
+    break-after: page;
+    page-break-after: always;
+  }
+  .slideWrap:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+}

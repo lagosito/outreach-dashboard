@@ -1,0 +1,293 @@
+{
+  "meta": {
+    "fuente": "Figma resume_Gabriel-Lagos",
+    "frames": [
+      "162:9",
+      "225:20"
+    ],
+    "extraido": "2026-10-06",
+    "anios_experiencia": "20+"
+  },
+  "persona": {
+    "nombre": "Gabriel Lagos",
+    "claim": "Creative Director · Brand Systems & Creative Operations",
+    "claim_google": "Creative Marketing & Brand | Campaigns, Creative Direction & AI"
+  },
+  "contacto": {
+    "telefono": "+49 176 4664 2026",
+    "email": "gabriel@makehappen.de",
+    "ubicacion": "Hamburg, Germany",
+    "linkedin": "linkedin.com/in/lagosito/",
+    "web": "www.makehappen.de",
+    "direccion": "Susannenstraße 21A. 20357 Hamburg"
+  },
+  "perfiles": {
+    "principal": [
+      "Creative leader with 20+ years driving global brand identity and creative systems for leading European brands including Deutsche Telekom, BMW, and Mercedes-Benz. Expert in merging design systems, storytelling, and AI-enabled creative operations to scale consistent brand experiences across markets.",
+      "Strong strategic partner to Marketing, Product, and Corporate Communications teams, with proven ability to build and lead high-performing in-house and agency teams, define brand governance frameworks, and deliver high-quality brand experiences across global markets and regions."
+    ],
+    "google": "Creative director and brand marketer with 20+ years in the German market, first at Heimat, BBDO, DDB, Serviceplan and Jung von Matt, then independently, creating campaigns for Deutsche Telekom, BMW, Volkswagen, Mercedes-Benz, Allianz and PlayStation®. I turn global brand stories into work that feels made for Germany and lead creative, social and production partners from brief to launch. Hands-on with AI every day, I know how to tell its story in human terms: what it does for people, not how it works.\n\nFluent in German and English, native Spanish, and at home in front of senior stakeholders.",
+    "twitch": "Creative Strategist with 20+ years building integrated, content‑led campaigns across DACH and Latin America. Strong in concepting from brief to delivery, pitching to senior stakeholders, and managing cross‑functional teams in fast timelines. Experience with digital entertainment brands and social platforms. Fluent in German and English. Available ASAP."
+  },
+  "experiencia": [
+    {
+      "empresa": "make happen GmbH",
+      "rol": "Head of Creative Intelligence",
+      "periodo": "2019 – Current",
+      "rol_google": "Founder & Creative Director",
+      "periodo_google": "2019 – Current",
+      "bullets": [
+        "Built and led a creative systems studio operating as an in-house–like partner for international brands.",
+        "Designed and governed brand identity systems, design libraries, templates, and creative standards across digital, social, motion, and experiential touchpoints.",
+        "Introduced AI-enabled creative workflows to support brand-safe content production, rapid prototyping, and scalable adaptation across regions.",
+        "Defined brand governance models ensuring visual and narrative consistency across markets.",
+        "Led compact, high-performing creative teams using agile review, feedback, and quality-control structures aligned with strategic brand priorities.",
+        "Creative and AI studio for brands in the German-speaking market, with direct accountability for revenue.",
+        "Led creative direction for campaigns and content, from strategy and concept through production and launch.",
+        "Briefed and steered creative, production and freelance partners to keep quality high and delivery on time.",
+        "Built AI workflows (n8n, Claude, LLM APIs, generative image and video) that speed up concepting and content production.",
+        "Delivered several AI workshops for business owners and leaders at the Handelskammer Hamburg, making AI tangible for non-technical audiences.",
+        "Owned positioning, budgets and performance tracking to decide where to invest next."
+      ]
+    },
+    {
+      "empresa": "Gabriel Lagos Freelancer",
+      "rol": "Marketing Specialist, Product Design UI/UX",
+      "periodo": "2013 – Current",
+      "rol_google": "Senior Creative & Marketing Consultant",
+      "periodo_google": "2013 – Present",
+      "bullets": [
+        "Developed data-informed brand and design solutions for international automotive and telecom clients.",
+        "Bridged brand strategy and creative execution for global launches and digital transformation initiatives.",
+        "Integrated campaigns and launches for enterprise brands in the German-speaking market.",
+        "Developed integrated campaigns and launch programmes across digital, social, events and print.",
+        "Worked directly with marketing leadership, briefing and steering agency and production teams.",
+        "Built narratives and pitch material for complex technology products, combining creative direction with performance data.",
+        "Selected Clients: Deutsche Telekom, BMW, Mercedes-Benz, Audi, Volkswagen"
+      ]
+    },
+    {
+      "empresa": "Jung von Matt",
+      "rol": "Digital Creative",
+      "periodo": "Dezember 2011 - August 2013",
+      "periodo_google": "December 2011 - August 2013",
+      "bullets": [
+        "Creative work for global brand and identity initiatives for Vodafone and Mercedes-Benz. Led cross-functional teams in digital transformation projects."
+      ]
+    },
+    {
+      "empresa": "Serviceplan Group",
+      "rol": "Creative Art",
+      "periodo": "Juni 2010 - November 2011",
+      "periodo_google": "June 2010 - November 2011",
+      "bullets": [
+        "Creative for BMW, Osram and new business development."
+      ]
+    },
+    {
+      "empresa": "DDB",
+      "rol": "Art Director",
+      "periodo": "August 2008 - Mai 2010",
+      "periodo_google": "August 2008 - May 2010",
+      "bullets": [
+        "Creative direction for Volkswagen, Sky, Allianz."
+      ]
+    },
+    {
+      "empresa": "BBDO",
+      "rol": "Creative Director",
+      "periodo": "April 2007 - Juli 2008",
+      "periodo_google": "April 2007 - July 2008",
+      "bullets": [
+        "Marketing Specialist for Pepsi, Banco LaFise."
+      ]
+    },
+    {
+      "empresa": "Heimat GmbH",
+      "rol": "Art Director",
+      "periodo": "April 2005 - Februar 2007",
+      "periodo_google": "April 2005 - February 2007",
+      "bullets": [
+        "Strategic direction for Audi, Hornbach."
+      ]
+    },
+    {
+      "empresa": "TBWA",
+      "rol": "Designer",
+      "periodo": "November 2003 - Februar 2005",
+      "bullets": [
+        "Visual solutions for PlayStation® gaming platform, Siemens, Swarovski."
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "grupo": "Design Systems & Creative Tools",
+      "items": [
+        "Adobe Creative Cloud",
+        "After Effects",
+        "Figma",
+        "Lottie",
+        "Framer"
+      ]
+    },
+    {
+      "grupo": "Creative Operations & AI",
+      "items": [
+        "Runway",
+        "ElevenLabs",
+        "Stable Diffusion",
+        "Recraft",
+        "ComfyUI",
+        "Flora",
+        "Weavy"
+      ]
+    },
+    {
+      "grupo": "Analytics & Automation",
+      "items": [
+        "GA4",
+        "HubSpot",
+        "Power BI",
+        "Zapier",
+        "Notion AI"
+      ]
+    },
+    {
+      "grupo": "Social & Publishing Platforms",
+      "items": [
+        "TikTok Creative Center",
+        "Meta Business Suite"
+      ]
+    }
+  ],
+  "educacion": [
+    "Visual Communication Design & New Media",
+    "Continuous learning in AI for marketing, automation, and creative analytics"
+  ],
+  "idiomas": [
+    {
+      "idioma": "Spanish",
+      "nivel": "Native"
+    },
+    {
+      "idioma": "German",
+      "nivel": "Fluent"
+    },
+    {
+      "idioma": "English",
+      "nivel": "Fluent"
+    }
+  ],
+  "clientes": [
+    "Deutsche Telekom",
+    "Telekom MMS",
+    "BMW",
+    "Mercedes-Benz",
+    "Audi",
+    "McDonald's",
+    "Hyundai",
+    "Volkswagen",
+    "PlayStation®",
+    "NEOM",
+    "Hochbahn"
+  ],
+  "extras": {
+    "impact_highlights": [
+      "Increased creative output by 40–60% through AI-driven workflows and automation pipelines.",
+      "Reduced production time by 30–50% across digital and social content without expanding team size.",
+      "Delivered brand and content systems adopted across 15+ European markets, improving consistency and speed.",
+      "Led cross-functional creative teams of 5–20 people, aligning strategy, design, and marketing for measurable growth."
+    ],
+    "core_strengths": [
+      "Creative ideation: turn briefs into clear, high‑impact campaign concepts.",
+      "Client‑facing & pitching: confident presenter to C‑level and senior clients.",
+      "Branded content & digital: deep experience in content‑driven, social and platform campaigns.",
+      "Project management: multi‑project ownership, agile collaboration with sales, production, media.",
+      "DACH market experience: long‑term work with German brands and agencies; bilingual comms (DE/EN)."
+    ],
+    "selected_achievements": [
+      "Led creative strategies for 25+ clients, from insight and briefs to final delivery.",
+      "Delivered compelling creative presentations and pitches that secured new and repeat work.",
+      "Managed cross‑functional teams and partners to ship integrated campaigns on time."
+    ],
+    "selected_highlights": [
+      "Led brand communications, campaign adaptation and launch activities across the DACH region (Volkswagen)",
+      "Led cross-functional teams of 5–10 across strategy, design, copy and development",
+      "Built digital-first, AI-supported content workflows delivering 40–60% more creative output and 30–50% less production time"
+    ],
+    "core_strengths_2026": [
+      "Brand Management & Brand Governance",
+      "Consumer & Digital-First Communications",
+      "Campaign Adaptation & Localisation",
+      "Product Launches & Innovation Communications",
+      "Media, Creative & PR Agency Management",
+      "Digital & Social Media",
+      "International Brand Rollouts",
+      "AI-Supported Content Production"
+    ],
+    "skills_google": [
+      {
+        "grupo": "Creative",
+        "items": [
+          "Creative Direction",
+          "Brand Storytelling",
+          "Integrated & Social Campaigns",
+          "Launches",
+          "Agency & Production Steering"
+        ]
+      },
+      {
+        "grupo": "Brand & Ops",
+        "items": [
+          "Campaign Planning",
+          "Budgets",
+          "Briefings",
+          "Performance Reporting",
+          "Figma",
+          "Framer",
+          "Airtable"
+        ]
+      },
+      {
+        "grupo": "AI",
+        "items": [
+          "ChatGPT",
+          "Claude",
+          "LLM APIs",
+          "n8n",
+          "Generative Image & Video",
+          "Agent Workflows"
+        ]
+      }
+    ],
+    "skills_ampliadas": {
+      "CV-2025_Urban": [
+        "Creative Tech & AI: Weavy, Flora, Dfirst, Kling, Seedream, Fal, Reve, Freepick, Dreamina, Heygen, Runway, ChatGPT, ElevenLabs, Recraft, Stable Diffusion, ",
+        "Social Publishing: TikTok Creative Center, Meta Business Suite, YouTube Studio. Rapid prototyping & iterative creative testing",
+        "Analytics & Automation: HubSpot, Zapier, Notion AI",
+        "Design & Project Tools: Adobe CC, After Effects, Premiere, Lottie, Framer. Figma, Trello, Webflow, CMS platforms"
+      ],
+      "CV-2025": [
+        "Brand & Print Design: Adobe Suite.",
+        "Digital Content & Animation: After Effects, Premiere Pro.",
+        "Web & Social Media: Figma, Webflow, CMS platforms.",
+        "Marketing Analytics & CRM: Google Analytics (GA4), HubSpot, Management: Asana, Trello, n8n."
+      ]
+    },
+    "clientes_google": [
+      "Deutsche Telekom",
+      "Telekom MMS",
+      "BMW",
+      "Mercedes-Benz",
+      "Audi",
+      "Volkswagen",
+      "Allianz",
+      "PlayStation®",
+      "McDonald's",
+      "Hyundai",
+      "NEOM",
+      "Hochbahn"
+    ]
+  }
+}

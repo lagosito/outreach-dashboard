@@ -5,3 +5,7 @@ node_modules/
 .vercel/
 .vercel
 .env*.local
+
+# Volcados crudos de Figma (los usados viven en public/docs/cases)
+docs/jobi/content/assets/
+.DS_Store

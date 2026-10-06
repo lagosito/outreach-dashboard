@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "fuente": "Análisis de outreach_contacts (601 leads activos: AI/KI 205 · Marketing/Brand 180 · Design/Creative 153) + casos y servicios del Services Guide",
+    "creado": "2026-10-06",
+    "estado": "PROVISIONAL — pendiente de validación de Gabriel",
+    "uso": "Define qué servicios y qué casos abre la guía de make happen y con qué promesa. No toca los CV ni las cartas, que siguen personalizados por oferta."
+  },
+  "verticales": [
+    {
+      "id": "ai-automation",
+      "nombre": "AI & Automation",
+      "para_quien": "Empresas B2B y SaaS que quieren automatizar procesos y producción de contenido sin ampliar el equipo.",
+      "ejemplos": ["elunic AG", "Boomi", "Personio", "EWOR", "Synera Technologies", "EPAM Systems", "Instaffo"],
+      "servicios": ["ai-agents", "ads-ai-content", "ux-ui-design"],
+      "casos": ["ai-agents", "elevating-brands-ai-content"],
+      "promesa": "Agentes y flujos con IA que hacen el trabajo repetitivo y liberan al equipo para lo estratégico.",
+      "titulo_portada": "AI & Automation"
+    },
+    {
+      "id": "marketing-brand",
+      "nombre": "Marketing, Brand & Performance",
+      "para_quien": "Equipos de marketing que necesitan escalar output creativo sin perder la consistencia de marca.",
+      "ejemplos": ["KlickPiloten", "ABOUT YOU", "liveFRAME Production GmbH", "knowmad mood", "JUSTADDSUGAR"],
+      "servicios": ["branding", "ads-ai-content"],
+      "casos": ["vw", "elevating-brands-ai-content"],
+      "promesa": "Más piezas, más rápido, con la marca intacta: creatividad humana con ejecución potenciada por IA.",
+      "titulo_portada": "Marketing & Brand"
+    },
+    {
+      "id": "design-digital",
+      "nombre": "Design & Digital Products",
+      "para_quien": "Producto y diseño digital: webs, plataformas e interfaces que tienen que clarificar y convertir.",
+      "ejemplos": ["Eye-Able", "Labrigart.Design GmbH", "RealStudio", "Blue Wolf Digital", "Jimdo"],
+      "servicios": ["ux-ui-design", "branding", "ads-ai-content"],
+      "casos": ["hochbahn", "kvd"],
+      "promesa": "Diseño que convierte confusión en claridad y claridad en resultados medibles.",
+      "titulo_portada": "Design & Digital Products"
+    },
+    {
+      "id": "retail-ecommerce",
+      "nombre": "Retail & E-Commerce",
+      "para_quien": "Retail y e-commerce que compiten por experiencia de compra y velocidad de contenido.",
+      "ejemplos": ["Scayle Commerce Engine", "ABOUT YOU", "Ostrom", "Puffy", "FAIRFAMILY"],
+      "servicios": ["ux-ui-design", "ads-ai-content", "branding"],
+      "casos": ["kvd", "sindalah"],
+      "promesa": "Experiencia de compra que convierte, con contenido siempre fresco para cada campaña.",
+      "titulo_portada": "Retail & E-Commerce"
+    },
+    {
+      "id": "corporate-industry",
+      "nombre": "Corporate & Industry",
+      "para_quien": "Grandes organizaciones que piden gobernanza de marca y adopción de IA en equipos no técnicos.",
+      "ejemplos": ["MSA - The Safety Company", "PwC Deutschland", "Leonine Holding GmbH", "Hamburger Hochbahn"],
+      "servicios": ["branding", "ai-agents", "ux-ui-design"],
+      "casos": ["hochbahn", "vw"],
+      "promesa": "Sistemas de marca que aguantan el volumen, y IA explicada para que el equipo la use de verdad.",
+      "titulo_portada": "Corporate & Industry"
+    }
+  ]
+}
