@@ -25,6 +25,7 @@ function DraftBlock({
   onCopy,
   onRegenerate,
   busy,
+  regenLabel,
 }: {
   title: string;
   tag: string;
@@ -33,6 +34,7 @@ function DraftBlock({
   onCopy: () => void;
   onRegenerate?: () => void;
   busy?: boolean;
+  regenLabel?: string;
 }) {
   return (
     <div className="draft">
@@ -56,10 +58,10 @@ function DraftBlock({
             type="button"
             onClick={onRegenerate}
             disabled={busy}
-            title="Regenera los tres textos (email Make Happen, email freelance e intro de LinkedIn) con la IA"
+            title="Regenera solo este texto con la IA (el idioma lo eliges arriba)"
           >
             <RefreshCw size={16} className={busy ? "spin" : undefined} />
-            {busy ? "Generando…" : "Regenerar"}
+            {busy ? "Generando…" : regenLabel || "Regenerar"}
           </button>
         ) : null}
       </div>
@@ -91,7 +93,10 @@ export function ContactDetail({
     fl: contact.email_freelancer || "",
     intro: contact.linkedin_intro || "",
   });
-  const [regenerating, setRegenerating] = useState(false);
+  const [regenerating, setRegenerating] = useState<"mh" | "fl" | "intro" | null>(
+    null
+  );
+  const [langMode, setLangMode] = useState<"auto" | "de" | "en">("auto");
   const hasMh = hasValue(drafts.mh);
   const hasFl = hasValue(drafts.fl);
   const hasDrafts = hasMh || hasFl;
@@ -117,40 +122,44 @@ export function ContactDetail({
   };
 
   /**
-   * Regenerates the three outreach texts (Make Happen email, freelancer email
-   * and the LinkedIn intro, capped at 300 chars) for this lead.
+   * Regenerates ONE text at a time (each button is independent):
+   * "mh" = email make happen, "fl" = email freelance, "intro" = LinkedIn intro
+   * (capped at 300 chars). `langMode` forces DE/EN or lets the server detect it.
    */
-  const regenerate = async () => {
-    setRegenerating(true);
+  const regenerate = async (target: "mh" | "fl" | "intro") => {
+    setRegenerating(target);
     try {
       const res = await fetch("/api/contacts/regenerate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: contact.id }),
+        body: JSON.stringify({
+          id: contact.id,
+          target,
+          language: langMode === "auto" ? undefined : langMode,
+        }),
       });
       const json = (await res.json().catch(() => ({}))) as {
         error?: string;
-        email_draft?: string;
-        email_freelancer?: string;
-        linkedin_intro?: string;
+        column?: string;
         language?: string;
         cost_usd?: number | null;
-      };
-      if (!res.ok || !json.email_draft) {
+      } & Record<string, unknown>;
+      const value = json.column ? String(json[json.column] ?? "") : "";
+      if (!res.ok || !value) {
         throw new Error(json.error || `HTTP ${res.status}`);
       }
-      setDrafts({
-        mh: json.email_draft,
-        fl: json.email_freelancer || "",
-        intro: json.linkedin_intro || "",
-      });
+      setDrafts((prev) => ({
+        ...prev,
+        [target === "mh" ? "mh" : target === "fl" ? "fl" : "intro"]: value,
+      }));
       const cost =
         typeof json.cost_usd === "number" ? ` · $${json.cost_usd.toFixed(4)}` : "";
-      notify(`Borradores regenerados (${json.language || "?"}${cost})`);
+      const tag = target === "mh" ? "Email Make Happen" : target === "fl" ? "Email freelance" : "Intro LinkedIn";
+      notify(`${tag} regenerado (${json.language || "?"}${cost})`);
     } catch (err) {
       notify(err instanceof Error ? err.message : "No se pudo regenerar");
     } finally {
-      setRegenerating(false);
+      setRegenerating(null);
     }
   };
 
@@ -186,6 +195,17 @@ export function ContactDetail({
               Make Happen · Freelance · intro LinkedIn (máx. 300)
             </span>
           </h4>
+          <SegControl
+            label="Idioma de los textos"
+            labelId="draft-lang"
+            value={langMode}
+            onChange={(value) => setLangMode(value as "auto" | "de" | "en")}
+            options={[
+              { value: "auto", label: "Auto" },
+              { value: "de", label: "DE" },
+              { value: "en", label: "EN" },
+            ]}
+          />
           {hasDrafts ? (
             <div className="drafts">
               {hasMh ? (
@@ -197,8 +217,9 @@ export function ContactDetail({
                   onCopy={() =>
                     copy(draftText(drafts.mh, contact), "Email Make Happen copiado")
                   }
-                  onRegenerate={regenerate}
-                  busy={regenerating}
+                  onRegenerate={() => regenerate("mh")}
+                  busy={regenerating === "mh"}
+                  regenLabel="Regenerar email MH"
                 />
               ) : null}
               {hasFl ? (
@@ -213,8 +234,9 @@ export function ContactDetail({
                       "Email freelancer copiado"
                     )
                   }
-                  onRegenerate={regenerate}
-                  busy={regenerating}
+                  onRegenerate={() => regenerate("fl")}
+                  busy={regenerating === "fl"}
+                  regenLabel="Regenerar email freelance"
                 />
               ) : null}
             </div>
@@ -225,15 +247,26 @@ export function ContactDetail({
                   ? "Todavía no hay borrador para este contacto."
                   : "Sin email encontrado, así que no hay borrador. Usa la intro de LinkedIn para abrir conversación."}
               </p>
-              <button
-                className="minibtn"
-                type="button"
-                onClick={regenerate}
-                disabled={regenerating}
-              >
-                <RefreshCw size={16} className={regenerating ? "spin" : undefined} />
-                {regenerating ? "Generando…" : "Generar borradores"}
-              </button>
+              <div className="draft-actions">
+                <button
+                  className="minibtn"
+                  type="button"
+                  onClick={() => regenerate("mh")}
+                  disabled={regenerating !== null}
+                >
+                  <RefreshCw size={16} className={regenerating === "mh" ? "spin" : undefined} />
+                  {regenerating === "mh" ? "Generando…" : "Generar email MH"}
+                </button>
+                <button
+                  className="minibtn"
+                  type="button"
+                  onClick={() => regenerate("fl")}
+                  disabled={regenerating !== null}
+                >
+                  <RefreshCw size={16} className={regenerating === "fl" ? "spin" : undefined} />
+                  {regenerating === "fl" ? "Generando…" : "Generar email freelance"}
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -329,27 +362,60 @@ export function ContactDetail({
           </div>
         ) : null}
 
-        {hasIntro ? (
-          <div className="dsec">
-            <h4>
-              LinkedIn intro
-              <span className="tag" style={intro.length > 300 ? { color: "var(--bad, #b00020)" } : undefined}>
-                {intro.length} de 300 caracteres
-              </span>
-            </h4>
+        <div className="dsec">
+          <h4>
+            LinkedIn intro
+            <span
+              className="tag"
+              style={intro.length > 300 ? { color: "var(--bad, #b00020)" } : undefined}
+            >
+              {intro.length} de 300 caracteres
+            </span>
+          </h4>
+          {hasIntro ? (
             <div className="draft">
               <pre>{intro}</pre>
+              <div className="draft-actions">
+                <button
+                  className="minibtn"
+                  type="button"
+                  onClick={() => copy(intro, "Intro de LinkedIn copiada")}
+                >
+                  <Copy size={16} />
+                  Copiar
+                </button>
+                <button
+                  className="minibtn"
+                  type="button"
+                  onClick={() => regenerate("intro")}
+                  disabled={regenerating !== null}
+                  title="Regenera solo la intro de LinkedIn (máximo 300 caracteres)"
+                >
+                  <RefreshCw
+                    size={16}
+                    className={regenerating === "intro" ? "spin" : undefined}
+                  />
+                  {regenerating === "intro" ? "Generando…" : "Regenerar intro"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="draft-actions">
               <button
                 className="minibtn"
                 type="button"
-                onClick={() => copy(intro, "Intro de LinkedIn copiada")}
+                onClick={() => regenerate("intro")}
+                disabled={regenerating !== null}
               >
-                <Copy size={16} />
-                Copiar
+                <RefreshCw
+                  size={16}
+                  className={regenerating === "intro" ? "spin" : undefined}
+                />
+                {regenerating === "intro" ? "Generando…" : "Generar intro LinkedIn"}
               </button>
             </div>
-          </div>
-        ) : null}
+          )}
+        </div>
 
         <div className="timeline">
           <TimelineItem label="Creado" value={contact.created_at} />
