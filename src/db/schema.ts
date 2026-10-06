@@ -19,4 +19,9 @@ export interface Contact {
   gmail_thread_id: string;
   created_at: string;
   updated_at: string;
+  // Document generation (JOBI fase 3).
+  doc_cv?: unknown | null;
+  doc_anschreiben?: unknown | null;
+  doc_mh?: unknown | null;
+  vacante_texto?: string | null;
 }

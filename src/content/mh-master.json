@@ -1,0 +1,132 @@
+{
+  "meta": {
+    "fuente": "Figma make-happen-GmbH---2026 (Services Guide)",
+    "extraido": "2026-10-06",
+    "anios_experiencia": "20+"
+  },
+  "empresa": {
+    "nombre": "make happen",
+    "legal": "make happen GmbH",
+    "claim": "What WE offer, how WE work and what YOUR investment includes - let’s get into it >>>",
+    "ubicacion": "Hamburg, Germany",
+    "web": "www.makehappen.de",
+    "email": "mail@makehappen.de"
+  },
+  "quienes_somos": [
+    "We're a small team from design, marketing, strategy, and tech united by one thing: we build things that matter.\nWe work closely with our clients, challenge assumptions, and find smart, simple solutions.\nNo buzzwords, no complicated processes just a team that loves what we do and gets things done.",
+    "We help brands and businesses create work that connects and converts ideas that don’t just look good, but deliver results. Led by Gabriel Lagos, Creative Lead, our team blends strategy and creativity to make work that matters."
+  ],
+  "servicios": [
+    {
+      "id": "branding",
+      "nombre": "Branding",
+      "descripcion": "Boosting your company's appeal",
+      "bullets": [
+        "Your brand speaks before you do. From the color on your logo to the tone in your emails it all tells a story. We make sure yours is the one people remember."
+      ]
+    },
+    {
+      "id": "ads-ai-content",
+      "nombre": "ADS & AI content",
+      "descripcion": "Finding solutions through creativity and collaboration",
+      "bullets": [
+        "Good ads sell. Great ones stick. We craft human ideas, brought to life with AI stories and visuals that get people talking and make your brand impossible to ignore."
+      ]
+    },
+    {
+      "id": "ux-ui-design",
+      "nombre": "UX/UI Design",
+      "descripcion": "Interface design that solves problems",
+      "bullets": [
+        "Design isn’t decoration \nit’s direction. We turn confusion into clarity and clicks into results. Clean, intuitive, and built for real humans."
+      ]
+    },
+    {
+      "id": "ai-agents",
+      "nombre": "AI Agents",
+      "descripcion": "Smart AI Agents for Smarter Business.",
+      "bullets": [
+        "Imagine a teammate who never sleeps and always learns. That’s what our AI Agents do automate tasks, talk to users, and help your business move faster."
+      ]
+    }
+  ],
+  "proceso": [
+    {
+      "paso": 1,
+      "titulo": "Discovery",
+      "descripcion": "We chat about your project goals and vision."
+    },
+    {
+      "paso": 2,
+      "titulo": "Proposal",
+      "descripcion": "I outline the scope and deliverables."
+    },
+    {
+      "paso": 3,
+      "titulo": "Design & Development",
+      "descripcion": "We bring ideas to life, keeping you updated."
+    },
+    {
+      "paso": 4,
+      "titulo": "Revisions",
+      "descripcion": "Tweaks are made to ensure everything feels right."
+    },
+    {
+      "paso": 5,
+      "titulo": "Completion",
+      "descripcion": "Final files are handed over, ready to use."
+    }
+  ],
+  "casos": [
+    {
+      "id": "vw",
+      "nombre": "Helping 6 Million Yearly Visitors",
+      "cliente": "Volkswagen",
+      "descripcion": "Helping VW transform its digital presence, delivering a seamless user experience, enhanced functionality, and innovative design to drive customer engagement and satisfaction to new heights.",
+      "imagen": "/docs/cases/case_1_vw.png"
+    },
+    {
+      "id": "sindalah",
+      "nombre": "Helping Shape Luxury Travel Digital Experiences",
+      "cliente": "Sindalah",
+      "descripcion": "We’re proud to design the website for Sindalah, a luxurious Red Sea destination redefining tourism under Saudi Arabia’s Vision 2030.",
+      "imagen": "/docs/cases/case_2_sindalah.png"
+    },
+    {
+      "id": "kvd",
+      "nombre": "Helping 100k+ Cyclists Every Day the KvD Website",
+      "cliente": "KvD",
+      "descripcion": "We designed a website that captures the essence of freedom, innovation, and style—bringing your biking experience to life online",
+      "imagen": "/docs/cases/case_3_kvd.png"
+    },
+    {
+      "id": "hochbahn",
+      "nombre": "Simplifying 100k+ Daily Trips at Hamburg’s Transit Hub",
+      "cliente": "Hamburger Hochbahn",
+      "descripcion": "Our innovation project simplifies their journeys with optimized maps and schedules, making travel easier and more accessible for everyone.",
+      "imagen": "/docs/cases/case_4_hochbahn.png"
+    },
+    {
+      "id": "elevating-brands-ai-content",
+      "nombre": "Elevating Brands with AI Content",
+      "cliente": "",
+      "descripcion": "We merge human creativity with AI precision to craft campaigns that captivate, convert, and scale powering brand growth across every platform.",
+      "imagen": "/docs/cases/case_5_elevating-brands-ai-content.png"
+    },
+    {
+      "id": "ai-agents",
+      "nombre": "AI Agents: Smart, Fast, Reliable",
+      "cliente": "",
+      "descripcion": "Streamline your front desk with an AI-powered receptionist that checks the calendar, books appointments, and sends confirmation emails seamlessly and efficiently.",
+      "imagen": "/docs/cases/case_6_ai-agents.png"
+    }
+  ],
+  "contacto": {
+    "email": "mail@makehappen.de",
+    "web": "www.makehappen.de",
+    "ubicacion": "[GER,HH]",
+    "email_personal": "gabriel@makehappen.de",
+    "telefono": "0049 176 4664 2026",
+    "contacto_slide13": "gabriel@makehappen.de – Susannenstraße 21a. 20357 – Hamburg – Germany"
+  }
+}

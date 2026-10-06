@@ -27,6 +27,11 @@ export interface Contact {
   draft_dm_candidate?: string | null;
   draft_dm_partner?: string | null;
   draft_comment?: string | null;
+  // Document generation (JOBI fase 3): stored JSON of each generated document.
+  doc_cv?: unknown | null;
+  doc_anschreiben?: unknown | null;
+  doc_mh?: unknown | null;
+  vacante_texto?: string | null;
 }
 
 /** The five workflow states stored in linkedin_engagements.status. */

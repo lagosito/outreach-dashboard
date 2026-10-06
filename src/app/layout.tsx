@@ -1,6 +1,21 @@
 import type { Metadata } from "next";
+import { Karla, Space_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
+
+// Tipografías de las plantillas de documentos (docs.module.css):
+// Space Grotesk para los claims y Karla para el cuerpo, publicadas como
+// variables CSS --font-space-grotesk / --font-karla.
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+});
+const karla = Karla({
+  subsets: ["latin"],
+  variable: "--font-karla",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "JOBI | Dashboard de leads",
@@ -15,7 +30,11 @@ const FAVICON =
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html
+      lang="es"
+      className={`${spaceGrotesk.variable} ${karla.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <link rel="icon" href={FAVICON} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

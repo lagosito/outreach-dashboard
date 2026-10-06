@@ -14,6 +14,7 @@ import {
 import { LinkedInGlyph } from "./icons";
 import { copyText, useToast } from "./Toast";
 import { SegControl } from "./fields";
+import { DocumentPanel } from "../docs/DocumentPanel";
 
 type DmMode = "candidate" | "partner";
 
@@ -266,6 +267,14 @@ export function ContactDetail({
             </div>
           </div>
         ) : null}
+
+        <div className="dsec">
+          <h4>
+            Documentos
+            <span className="tag">CV · carta · make happen</span>
+          </h4>
+          <DocumentPanel contact={contact} />
+        </div>
 
         <div className="timeline">
           <TimelineItem label="Creado" value={contact.created_at} />
