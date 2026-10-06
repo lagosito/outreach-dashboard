@@ -1,6 +1,6 @@
 "use client";
 
-import { Briefcase, Check, Copy, ExternalLink, Send, X } from "lucide-react";
+import { Briefcase, Check, Copy, ExternalLink, RefreshCw, Send, X } from "lucide-react";
 import { useState } from "react";
 import {
   buildMailto,
@@ -14,7 +14,6 @@ import {
 import { LinkedInGlyph } from "./icons";
 import { copyText, useToast } from "./Toast";
 import { SegControl } from "./fields";
-import { DocumentPanel } from "../docs/DocumentPanel";
 
 type DmMode = "candidate" | "partner";
 
@@ -24,12 +23,16 @@ function DraftBlock({
   subject,
   body,
   onCopy,
+  onRegenerate,
+  busy,
 }: {
   title: string;
   tag: string;
   subject: string;
   body: string;
   onCopy: () => void;
+  onRegenerate?: () => void;
+  busy?: boolean;
 }) {
   return (
     <div className="draft">
@@ -42,10 +45,24 @@ function DraftBlock({
         <b>{subject}</b>
       </div>
       <pre>{body}</pre>
-      <button className="minibtn" type="button" onClick={onCopy}>
-        <Copy size={16} />
-        Copiar
-      </button>
+      <div className="draft-actions">
+        <button className="minibtn" type="button" onClick={onCopy}>
+          <Copy size={16} />
+          Copiar
+        </button>
+        {onRegenerate ? (
+          <button
+            className="minibtn"
+            type="button"
+            onClick={onRegenerate}
+            disabled={busy}
+            title="Regenera los tres textos (email Make Happen, email freelance e intro de LinkedIn) con la IA"
+          >
+            <RefreshCw size={16} className={busy ? "spin" : undefined} />
+            {busy ? "Generando…" : "Regenerar"}
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -69,13 +86,19 @@ export function ContactDetail({
 }) {
   const notify = useToast();
   const stage = stageOf(contact.estado);
-  const hasMh = hasValue(contact.email_draft);
-  const hasFl = hasValue(contact.email_freelancer);
+  const [drafts, setDrafts] = useState({
+    mh: contact.email_draft || "",
+    fl: contact.email_freelancer || "",
+    intro: contact.linkedin_intro || "",
+  });
+  const [regenerating, setRegenerating] = useState(false);
+  const hasMh = hasValue(drafts.mh);
+  const hasFl = hasValue(drafts.fl);
   const hasDrafts = hasMh || hasFl;
-  const hasIntro = hasValue(contact.linkedin_intro);
-  const intro = contact.linkedin_intro || "";
-  const mh = splitSubject(contact.email_draft, contact);
-  const fl = splitSubject(contact.email_freelancer, contact);
+  const hasIntro = hasValue(drafts.intro);
+  const intro = drafts.intro;
+  const mh = splitSubject(drafts.mh, contact);
+  const fl = splitSubject(drafts.fl, contact);
 
   // LinkedIn direct messages (JOBI v2 rows): both variants stay editable.
   const hasLiDm =
@@ -91,6 +114,44 @@ export function ContactDetail({
   const copy = async (text: string, message: string) => {
     const ok = await copyText(text);
     notify(ok ? message : "No se pudo copiar");
+  };
+
+  /**
+   * Regenerates the three outreach texts (Make Happen email, freelancer email
+   * and the LinkedIn intro, capped at 300 chars) for this lead.
+   */
+  const regenerate = async () => {
+    setRegenerating(true);
+    try {
+      const res = await fetch("/api/contacts/regenerate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: contact.id }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        email_draft?: string;
+        email_freelancer?: string;
+        linkedin_intro?: string;
+        language?: string;
+        cost_usd?: number | null;
+      };
+      if (!res.ok || !json.email_draft) {
+        throw new Error(json.error || `HTTP ${res.status}`);
+      }
+      setDrafts({
+        mh: json.email_draft,
+        fl: json.email_freelancer || "",
+        intro: json.linkedin_intro || "",
+      });
+      const cost =
+        typeof json.cost_usd === "number" ? ` · $${json.cost_usd.toFixed(4)}` : "";
+      notify(`Borradores regenerados (${json.language || "?"}${cost})`);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "No se pudo regenerar");
+    } finally {
+      setRegenerating(false);
+    }
   };
 
   const saveLiDraft = async (
@@ -119,7 +180,12 @@ export function ContactDetail({
         </div>
 
         <div className="dsec">
-          <h4>Borradores de email</h4>
+          <h4>
+            Borradores de email
+            <span className="tag">
+              Make Happen · Freelance · intro LinkedIn (máx. 300)
+            </span>
+          </h4>
           {hasDrafts ? (
             <div className="drafts">
               {hasMh ? (
@@ -129,8 +195,10 @@ export function ContactDetail({
                   subject={mh.subject}
                   body={mh.body}
                   onCopy={() =>
-                    copy(draftText(contact.email_draft, contact), "Email Make Happen copiado")
+                    copy(draftText(drafts.mh, contact), "Email Make Happen copiado")
                   }
+                  onRegenerate={regenerate}
+                  busy={regenerating}
                 />
               ) : null}
               {hasFl ? (
@@ -141,19 +209,32 @@ export function ContactDetail({
                   body={fl.body}
                   onCopy={() =>
                     copy(
-                      draftText(contact.email_freelancer, contact),
+                      draftText(drafts.fl, contact),
                       "Email freelancer copiado"
                     )
                   }
+                  onRegenerate={regenerate}
+                  busy={regenerating}
                 />
               ) : null}
             </div>
           ) : (
-            <p className="hyp" style={{ color: "var(--muted)" }}>
-              {hasValue(contact.contacto_email)
-                ? "Todavía no hay borrador para este contacto."
-                : "Sin email encontrado, así que no hay borrador. Usa la intro de LinkedIn para abrir conversación."}
-            </p>
+            <>
+              <p className="hyp" style={{ color: "var(--muted)" }}>
+                {hasValue(contact.contacto_email)
+                  ? "Todavía no hay borrador para este contacto."
+                  : "Sin email encontrado, así que no hay borrador. Usa la intro de LinkedIn para abrir conversación."}
+              </p>
+              <button
+                className="minibtn"
+                type="button"
+                onClick={regenerate}
+                disabled={regenerating}
+              >
+                <RefreshCw size={16} className={regenerating ? "spin" : undefined} />
+                {regenerating ? "Generando…" : "Generar borradores"}
+              </button>
+            </>
           )}
         </div>
 
@@ -252,7 +333,9 @@ export function ContactDetail({
           <div className="dsec">
             <h4>
               LinkedIn intro
-              <span className="tag">{intro.length} de 300 caracteres</span>
+              <span className="tag" style={intro.length > 300 ? { color: "var(--bad, #b00020)" } : undefined}>
+                {intro.length} de 300 caracteres
+              </span>
             </h4>
             <div className="draft">
               <pre>{intro}</pre>
@@ -267,14 +350,6 @@ export function ContactDetail({
             </div>
           </div>
         ) : null}
-
-        <div className="dsec">
-          <h4>
-            Documentos
-            <span className="tag">CV · carta · make happen</span>
-          </h4>
-          <DocumentPanel contact={contact} />
-        </div>
 
         <div className="timeline">
           <TimelineItem label="Creado" value={contact.created_at} />
