@@ -5,17 +5,14 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ContactsTab } from "@/components/jobi/ContactsTab";
 import { DirectoryTab } from "@/components/jobi/DirectoryTab";
 import { Header } from "@/components/jobi/Header";
-import { LinkedInTab } from "@/components/jobi/LinkedInTab";
 import { ToastProvider, useToast } from "@/components/jobi/Toast";
 import {
   buildDirectory,
   stageOf,
-  EMPTY_LINKEDIN_COUNTS,
   type Contact,
-  type LinkedInCounts,
 } from "@/lib/jobi";
 
-type TabId = "contacts" | "linkedin" | "directory";
+type TabId = "contacts" | "directory";
 
 function Dashboard() {
   const notify = useToast();
@@ -23,7 +20,6 @@ function Dashboard() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [liCounts, setLiCounts] = useState<LinkedInCounts>(EMPTY_LINKEDIN_COUNTS);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -99,15 +95,11 @@ function Dashboard() {
   );
 
   const refresh = useCallback(() => setRefreshKey((key) => key + 1), []);
-  const handleCounts = useCallback(
-    (counts: LinkedInCounts) => setLiCounts(counts),
-    []
-  );
 
   return (
     <div className="min-h-screen">
       <div className="wrap">
-        <Header demo={liCounts.posts === 0 && liCounts.queue === 0} onRefresh={refresh} />
+        <Header demo={false} onRefresh={refresh} />
 
         <div className="tabrow">
           <nav className="tabs" role="tablist" aria-label="Secciones">
@@ -120,21 +112,6 @@ function Dashboard() {
               onClick={() => setTab("contacts")}
             >
               Ofertas <span className="count">{activeContacts}</span>
-            </button>
-            <button
-              role="tab"
-              id="tab-linkedin"
-              aria-controls="p-linkedin"
-              aria-selected={tab === "linkedin"}
-              data-tab="linkedin"
-              onClick={() => setTab("linkedin")}
-            >
-              Post <span className="count">{liCounts.posts + liCounts.queue}</span>
-              {liCounts.queue > 0 ? (
-                <span className="count hot" title="Pendientes de revisión">
-                  {liCounts.queue}
-                </span>
-              ) : null}
             </button>
             <button
               role="tab"
@@ -161,15 +138,6 @@ function Dashboard() {
             error={error}
             onStatusChange={onStatusChange}
           />
-        </section>
-
-        <section
-          id="p-linkedin"
-          role="tabpanel"
-          aria-labelledby="tab-linkedin"
-          hidden={tab !== "linkedin"}
-        >
-          <LinkedInTab onCounts={handleCounts} refreshKey={refreshKey} />
         </section>
 
         <section
