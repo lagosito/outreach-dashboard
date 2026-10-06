@@ -936,6 +936,29 @@ nav.tabs button[aria-selected="true"] .count.hot {
 .btn:hover {
   background: var(--surface-2);
 }
+.minibtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.spin {
+  animation: jobi-spin 0.9s linear infinite;
+}
+@keyframes jobi-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
 .timeline {
   display: grid;
   grid: none / repeat(4, minmax(0, 1fr));
