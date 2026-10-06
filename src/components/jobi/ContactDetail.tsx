@@ -1,7 +1,7 @@
 "use client";
 
 import { Briefcase, Check, Copy, ExternalLink, RefreshCw, Send, X } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   buildMailto,
   draftText,
@@ -11,11 +11,40 @@ import {
   stageOf,
   type Contact,
 } from "@/lib/jobi";
+import { detectLanguage } from "@/lib/documents";
 import { LinkedInGlyph } from "./icons";
 import { copyText, useToast } from "./Toast";
 import { SegControl } from "./fields";
 
 type DmMode = "candidate" | "partner";
+type Lang = "de" | "en";
+type Target = "mh" | "fl" | "intro";
+
+/** Compact DE | EN switch shown next to each regenerate button. */
+function LangToggle({
+  value,
+  onChange,
+  label,
+}: {
+  value: Lang;
+  onChange: (lang: Lang) => void;
+  label: string;
+}) {
+  return (
+    <div className="langtoggle" role="group" aria-label={label}>
+      {(["de", "en"] as Lang[]).map((lang) => (
+        <button
+          key={lang}
+          type="button"
+          aria-pressed={value === lang}
+          onClick={() => onChange(lang)}
+        >
+          {lang.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function DraftBlock({
   title,
@@ -26,6 +55,8 @@ function DraftBlock({
   onRegenerate,
   busy,
   regenLabel,
+  lang,
+  onLang,
 }: {
   title: string;
   tag: string;
@@ -35,6 +66,8 @@ function DraftBlock({
   onRegenerate?: () => void;
   busy?: boolean;
   regenLabel?: string;
+  lang?: Lang;
+  onLang?: (lang: Lang) => void;
 }) {
   return (
     <div className="draft">
@@ -58,11 +91,18 @@ function DraftBlock({
             type="button"
             onClick={onRegenerate}
             disabled={busy}
-            title="Regenera solo este texto con la IA (el idioma lo eliges arriba)"
+            title="Regenera solo este texto con la IA"
           >
             <RefreshCw size={16} className={busy ? "spin" : undefined} />
             {busy ? "Generando…" : regenLabel || "Regenerar"}
           </button>
+        ) : null}
+        {onRegenerate && lang && onLang ? (
+          <LangToggle
+            value={lang}
+            onChange={onLang}
+            label={`Idioma de ${regenLabel || "este texto"}`}
+          />
         ) : null}
       </div>
     </div>
@@ -93,10 +133,24 @@ export function ContactDetail({
     fl: contact.email_freelancer || "",
     intro: contact.linkedin_intro || "",
   });
-  const [regenerating, setRegenerating] = useState<"mh" | "fl" | "intro" | null>(
-    null
+  const [regenerating, setRegenerating] = useState<Target | null>(null);
+  // Language of each regenerate control: starts as the detected language of the
+  // offer and can be flipped to DE/EN right next to its Regenerar button.
+  const detectedLang = useMemo(
+    () =>
+      detectLanguage(
+        (contact as unknown as { vacante_texto?: string | null }).vacante_texto,
+        contact.hipotesis,
+        contact.cargo,
+        contact.empresa
+      ),
+    [contact]
   );
-  const [langMode, setLangMode] = useState<"auto" | "de" | "en">("auto");
+  const [langs, setLangs] = useState<{ mh: Lang; fl: Lang; intro: Lang }>({
+    mh: detectedLang,
+    fl: detectedLang,
+    intro: detectedLang,
+  });
   const hasMh = hasValue(drafts.mh);
   const hasFl = hasValue(drafts.fl);
   const hasDrafts = hasMh || hasFl;
@@ -124,9 +178,9 @@ export function ContactDetail({
   /**
    * Regenerates ONE text at a time (each button is independent):
    * "mh" = email make happen, "fl" = email freelance, "intro" = LinkedIn intro
-   * (capped at 300 chars). `langMode` forces DE/EN or lets the server detect it.
+   * (capped at 300 chars). The language comes from that control's DE|EN toggle.
    */
-  const regenerate = async (target: "mh" | "fl" | "intro") => {
+  const regenerate = async (target: Target) => {
     setRegenerating(target);
     try {
       const res = await fetch("/api/contacts/regenerate", {
@@ -135,7 +189,7 @@ export function ContactDetail({
         body: JSON.stringify({
           id: contact.id,
           target,
-          language: langMode === "auto" ? undefined : langMode,
+          language: langs[target],
         }),
       });
       const json = (await res.json().catch(() => ({}))) as {
@@ -195,17 +249,6 @@ export function ContactDetail({
               Make Happen · Freelance · intro LinkedIn (máx. 300)
             </span>
           </h4>
-          <SegControl
-            label="Idioma de los textos"
-            labelId="draft-lang"
-            value={langMode}
-            onChange={(value) => setLangMode(value as "auto" | "de" | "en")}
-            options={[
-              { value: "auto", label: "Auto" },
-              { value: "de", label: "DE" },
-              { value: "en", label: "EN" },
-            ]}
-          />
           {hasDrafts ? (
             <div className="drafts">
               {hasMh ? (
@@ -220,6 +263,8 @@ export function ContactDetail({
                   onRegenerate={() => regenerate("mh")}
                   busy={regenerating === "mh"}
                   regenLabel="Regenerar email MH"
+                  lang={langs.mh}
+                  onLang={(lang) => setLangs((prev) => ({ ...prev, mh: lang }))}
                 />
               ) : null}
               {hasFl ? (
@@ -237,6 +282,8 @@ export function ContactDetail({
                   onRegenerate={() => regenerate("fl")}
                   busy={regenerating === "fl"}
                   regenLabel="Regenerar email freelance"
+                  lang={langs.fl}
+                  onLang={(lang) => setLangs((prev) => ({ ...prev, fl: lang }))}
                 />
               ) : null}
             </div>
@@ -257,6 +304,11 @@ export function ContactDetail({
                   <RefreshCw size={16} className={regenerating === "mh" ? "spin" : undefined} />
                   {regenerating === "mh" ? "Generando…" : "Generar email MH"}
                 </button>
+                <LangToggle
+                  value={langs.mh}
+                  onChange={(lang) => setLangs((prev) => ({ ...prev, mh: lang }))}
+                  label="Idioma del email Make Happen"
+                />
                 <button
                   className="minibtn"
                   type="button"
@@ -266,6 +318,11 @@ export function ContactDetail({
                   <RefreshCw size={16} className={regenerating === "fl" ? "spin" : undefined} />
                   {regenerating === "fl" ? "Generando…" : "Generar email freelance"}
                 </button>
+                <LangToggle
+                  value={langs.fl}
+                  onChange={(lang) => setLangs((prev) => ({ ...prev, fl: lang }))}
+                  label="Idioma del email freelance"
+                />
               </div>
             </>
           )}
@@ -397,6 +454,11 @@ export function ContactDetail({
                   />
                   {regenerating === "intro" ? "Generando…" : "Regenerar intro"}
                 </button>
+                <LangToggle
+                  value={langs.intro}
+                  onChange={(lang) => setLangs((prev) => ({ ...prev, intro: lang }))}
+                  label="Idioma de la intro de LinkedIn"
+                />
               </div>
             </div>
           ) : (
@@ -413,6 +475,11 @@ export function ContactDetail({
                 />
                 {regenerating === "intro" ? "Generando…" : "Generar intro LinkedIn"}
               </button>
+              <LangToggle
+                value={langs.intro}
+                onChange={(lang) => setLangs((prev) => ({ ...prev, intro: lang }))}
+                label="Idioma de la intro de LinkedIn"
+              />
             </div>
           )}
         </div>
