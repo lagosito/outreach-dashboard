@@ -570,6 +570,36 @@ nav.tabs button[aria-selected="true"] .count.hot {
   color: var(--muted);
   font-weight: 600;
 }
+/* Compact DE | EN switch that sits next to a Regenerar button. */
+.langtoggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 3px;
+  height: 40px;
+}
+.langtoggle button {
+  border: 0;
+  background: transparent;
+  border-radius: 9px;
+  padding: 0 10px;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+.langtoggle button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(20, 19, 30, 0.16);
+}
 .resultline {
   padding: 16px 24px;
   color: var(--muted);
