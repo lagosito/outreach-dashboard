@@ -4,6 +4,27 @@
 
 import cvMaster from "@/content/cv-master.json";
 import mhMaster from "@/content/mh-master.json";
+import verticalesMaster from "@/content/verticales.json";
+
+interface Vertical {
+  id: string;
+  nombre: string;
+  para_quien: string;
+  ejemplos: string[];
+  servicios: string[];
+  casos: string[];
+  promesa: string;
+  titulo_portada: string;
+}
+
+export const VERTICALS: Vertical[] = (
+  verticalesMaster as { verticales: Vertical[] }
+).verticales;
+
+export function verticalById(id: string | null | undefined): Vertical | null {
+  if (!id) return null;
+  return VERTICALS.find((v) => v.id === id) ?? null;
+}
 
 export type DocType = "cv" | "cv_anschreiben" | "mh";
 
@@ -32,6 +53,8 @@ export interface DocContext {
   contacto_nombre: string | null;
   vacante_texto?: string | null;
   instruccion?: string | null;
+  /** Id de vertical de verticales.json (solo aplica a la guía make happen). */
+  vertical?: string | null;
 }
 
 export interface GeneratedDoc {
@@ -158,6 +181,17 @@ Dejá vacío cualquier campo que no puedas completar con el maestro (nada de dir
 }
 
 function promptMH(ctx: DocContext, language: "de" | "en"): string {
+  const vertical = verticalById(ctx.vertical);
+  const verticalBlock = vertical
+    ? `
+
+VERTICAL OBLIGATORIO: "${vertical.nombre}" (${vertical.id})
+- Portada: usá "${vertical.titulo_portada}" como eje del titular/claim de portada.
+- Servicios a mostrar: SOLO ${vertical.servicios.join(", ")} (del maestro; no inventes otros).
+- Casos a mostrar: SOLO ${vertical.casos.join(", ")} (del maestro).
+- Arrancá la propuesta ("qué construiríamos para vosotros") desde esta promesa: "${vertical.promesa}".
+- Para quién es esta vertical: ${vertical.para_quien}`
+    : "";
   return `Sos el asistente que prepara una versión corta y personalizada del Services Guide de make happen para una empresa concreta.
 
 ${RULES}
@@ -175,7 +209,7 @@ JSON MAESTRO (única fuente de verdad):
 ${JSON.stringify(mhMaster, null, 2)}
 
 Documento de ~6 páginas 16:9, en este orden:
-1 portada personalizada ("für ${ctx.empresa}") · 2 quiénes somos · 3 qué construiríamos para vosotros (desde la hipótesis) · 4 servicios relevantes (2–4 del maestro) · 5-6 2–3 casos que encajen · 7 contacto.
+1 portada personalizada ("für ${ctx.empresa}") · 2 quiénes somos · 3 qué construiríamos para vosotros (desde la hipótesis) · 4 servicios relevantes (2–4 del maestro) · 5-6 2–3 casos que encajen · 7 contacto.${verticalBlock}
 
 Devolvé JSON con esta forma:
 {
@@ -385,6 +419,8 @@ export async function generateDocument(
     tokens += LAST_USAGE.total_tokens ?? 0;
     errors = validateDoc(tipo, data, allowed);
     if (errors.length === 0) {
+      const clean = sanitize(data) as Record<string, unknown>;
+      if (tipo === "mh" && ctx.vertical) clean.vertical = ctx.vertical;
       return {
         tipo,
         language,
@@ -392,7 +428,7 @@ export async function generateDocument(
         model: MODEL,
         cost_usd: costKnown ? Number(cost.toFixed(6)) : null,
         total_tokens: tokens || null,
-        data: sanitize(data) as Record<string, unknown>,
+        data: clean,
       };
     }
     prompt = `${prompt}\n\nTU RESPUESTA ANTERIOR FALLÓ LA VALIDACIÓN (${errors.join("; ")}).

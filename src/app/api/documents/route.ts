@@ -54,6 +54,10 @@ export async function POST(request: NextRequest) {
       : null;
   const language =
     body.language === "de" || body.language === "en" ? body.language : undefined;
+  const vertical =
+    typeof body.vertical === "string" && body.vertical.trim()
+      ? body.vertical.trim()
+      : null;
 
   const ctx: DocContext = {
     empresa: contact.empresa,
@@ -62,6 +66,7 @@ export async function POST(request: NextRequest) {
     contacto_nombre: contact.contacto_nombre || null,
     vacante_texto: vacante,
     instruccion,
+    vertical,
   };
 
   try {
